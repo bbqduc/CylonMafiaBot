@@ -47,20 +47,6 @@ CylonBot.prototype.sendPrivateMessage = function(targetNick, message) {
     this.client.say(targetNick, message);
 };
 
-CylonBot.prototype.applyEffectToMessage = function(effectName, colorName, message) {
-    //TODO only foreground for now
-    var colorCode = this.effectCodes[colorName];
-    var effectCode = this.effectCodes[colorName];
-    if(colorCode != null) {
-        message = "\x03" + colorCode + message + "\x0F";
-    }
-    if(effectCode != null) {
-        message = effectCode + message + effectCode;
-    }
-    return message;
-};
-
-
 //var game = new Game();
 //var bot = new CylonBot("localhost", "CylonMafiaBot", "#asd", "johannes", game);
 

@@ -14,10 +14,15 @@ var Game = function()
     this.currentDay = 0;
     this.cylonRoles = [];
     this.humanRoles = [];
+    this.gameStarted = false;
 
     Game.prototype.startServing = function() {};
 
     Game.prototype.addPlayer = function(nick, restString) {
+        if(this.gameStarted) {
+            this.communicationInterface.sendPublicMessage("Cannot join an ongoing game!");
+            return false;
+        }
         if(restString != "") {
            return false;
         }
@@ -27,8 +32,13 @@ var Game = function()
     };
     Game.prototype.removePlayer = function(nick)
     {
+        if(this.gameStarted) {
+            this.communicationInterface.sendPublicMessage("Cannot leave an ongoing game!");
+            return false;
+        }
         delete this.players[nick];
-        this.communicationInterface.sendPublicMessage(nick + " confessed to being a cylon! Currently " + _.size(this.mPlayers) + " players on board.");
+        this.communicationInterface.sendPublicMessage(nick + " confessed to being a cylon! Currently " + _.size(this.players) + " players on board.");
+        return true;
     };
 
     Game.prototype.onPublicMessage = function(sender, message) {
@@ -67,7 +77,7 @@ var Game = function()
 
     Game.prototype.determineRoles = function()
     {
-        var roles = [];
+/*        var roles = [];
         var i = 0;
         var cylonLeaderPresent = false;
         this.mCylonRoles = _.shuffle(this.mCylonRoles);
@@ -91,12 +101,13 @@ var Game = function()
         _.forOwn(this.mPlayers, function(player)
         {
             player.mSetRole(roles[i++]);
-        });
+        });*/
     };
 
     Game.prototype.startGame = function()
     {
-        this.communicationInterface.sendMessage("Game starting!");
+        this.gameStarted = true;
+        this.communicationInterface.sendPublicMessage("Game starting!");
         this.determineRoles();
         this.advanceToNextDay();
     };
@@ -119,7 +130,7 @@ var Game = function()
         this.detectNewDeadPeople();
         this.sendMessagesForDay(this.currentDay);
         this.currentDay++;
-        this.sendChannelMessage("=========== DAY " + this.currentDay + "===========");
+        this.communicationInterface.sendPublicMessage("=========== DAY " + this.currentDay + "===========");
     };
 
     Game.prototype.sendMessagesForDay = function(day)
@@ -133,7 +144,8 @@ var Game = function()
     };
 
     this.commandHandlers = {
-        "join": Game.prototype.addPlayer.bind(this)
+        "join": Game.prototype.addPlayer.bind(this),
+        "leave": Game.prototype.removePlayer.bind(this)
     };
 };
 

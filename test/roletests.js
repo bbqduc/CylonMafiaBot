@@ -5,17 +5,13 @@
 var assert = require("should");
 var fs = require("fs");
 var _ = require("lodash");
+var roles = require("../roles");
 
 describe('Roles', function() {
-    var files = fs.readdirSync("./roles")
     var names = [];
-    _.forEach(files, function(element, index) {
-        if (element.match(/.?\.js/) == null) {
-            return;
-        }
-        var role = require("../roles/" + element);
+    _.forOwn(roles, function (role, name) {
         var obj = new role();
-        describe(element, function() {
+        describe(name, function() {
             describe('name', function () {
                 it('should have the name property', function () {
                     obj.should.have.property("NAME");
