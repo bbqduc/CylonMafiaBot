@@ -1,0 +1,6 @@
+{
+    "abilities": ["killer"],
+    "name": "Cylon Number 2",
+    "faction": "Cylon",
+    "winresolver": "factionwinresolver"
+}

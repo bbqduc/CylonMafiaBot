@@ -6,14 +6,13 @@
 require('irc-colors').global()
 var _ = require("lodash");
 var Player = require("./player");
+var roleClasses = require("./roles");
 var Game = function()
 {
     this.players = {};
     this.killedPlayers = {};
     this.killedDuringLastNight = [];
     this.currentDay = 0;
-    this.cylonRoles = [];
-    this.humanRoles = [];
     this.gameStarted = false;
 
     Game.prototype.startServing = function() {};
@@ -77,31 +76,40 @@ var Game = function()
 
     Game.prototype.determineRoles = function()
     {
-/*        var roles = [];
-        var i = 0;
-        var cylonLeaderPresent = false;
-        this.mCylonRoles = _.shuffle(this.mCylonRoles);
-        this.mHumanRoles = _.shuffle(this.mHumanRoles);
-        var numberOfCylons = 1;//Math.round(_.size(this.mPlayers) / 3.0);
-        for(i = 0; i < numberOfCylons; ++i) {
-            roles[i] = this.mCylonRoles[i];
-            if(roles[i] instanceof CM.C_Role.C_CylonLeader) {
-                cylonLeaderPresent = true;
-            }
-        }
-        if(!cylonLeaderPresent) {
-            roles[0] = new CM.C_Role.C_CylonLeader();
-        }
-        for(i = numberOfCylons; i < _.size(this.mPlayers); ++i) {
-            roles[i] = this.mHumanRoles[i];
-        }
+        var cylonRoles = [];
+        var humanRoles = [];
 
+        _.forOwn(roleClasses, function(role, name) {
+            if(role == roleClasses.role) {
+                return;
+            }
+            if(role.prototype.FACTION === "Cylon") {
+                cylonRoles.push(new role());
+            } else {
+                humanRoles.push(new role());
+            }
+        });
+        var numberOfCylons = Math.round(_.size(this.players) / 3.0);
+        if(cylonRoles.length < numberOfCylons || humanRoles.length < _.size(this.players)-numberOfCylons) {
+            throw "Oops, not enough roles for all players!";
+        }
+        cylonRoles = _.shuffle(cylonRoles);
+        humanRoles = _.shuffle(humanRoles);
+        var roles = [];
+        for(i = 0; i < numberOfCylons; ++i) {
+            roles[i] = cylonRoles[i];
+        }
+        for(i = numberOfCylons; i < _.size(this.players); ++i) {
+            roles[i] = humanRoles[i-numberOfCylons];
+        }
         roles = _.shuffle(roles);
         i = 0;
-        _.forOwn(this.mPlayers, function(player)
+        _.forOwn(this.players, function(player)
         {
-            player.mSetRole(roles[i++]);
-        });*/
+            roles[i].player = player;
+            player.role = roles[i++];
+            this.communicationInterface.sendPrivateMessage(player.nick, player.role.getInitialMessage());
+        }, this);
     };
 
     Game.prototype.startGame = function()

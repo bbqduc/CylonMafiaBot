@@ -1,0 +1,6 @@
+{
+    "abilities": ["swapper"],
+    "name": "Colonel Tigh",
+    "faction": "Human",
+    "winresolver": "factionwinresolver"
+}

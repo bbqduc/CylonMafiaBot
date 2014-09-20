@@ -1,0 +1,6 @@
+{
+    "abilities": ["killer"],
+    "name": "Tom Zarek",
+    "faction": "Human",
+    "winresolver": "factionwinresolver"
+}

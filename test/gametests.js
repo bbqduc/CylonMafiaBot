@@ -61,5 +61,12 @@ describe("Game", function() {
                 (game.players[names[i]].role == null).should.be.false;
             }
         });
+        it("All players should receive a unique role", function() {
+            var roleNames = _.map(game.players, function(player, name) {
+                return player.role.NAME;
+            });
+            var uniqNames = _.uniq(roleNames);
+            uniqNames.length.should.be.exactly(roleNames.length);
+        });
     });
 });

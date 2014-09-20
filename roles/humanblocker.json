@@ -1,0 +1,6 @@
+{
+    "abilities": ["blocker"],
+    "name": "Human Blocker",
+    "faction": "Human",
+    "winresolver": "factionwinresolver"
+}

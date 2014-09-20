@@ -1,0 +1,6 @@
+{
+    "abilities": ["blocker"],
+    "name": "Cylon Blocker",
+    "faction": "Cylon",
+    "winresolver": "factionwinresolver"
+}
