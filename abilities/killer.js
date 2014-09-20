@@ -22,9 +22,11 @@ var Killer = function(maxkilltimes)
         if(this.maxKillTimes === 0) {
             throw "Maximum amount of kills already performed!";
         }
+        restString = restString.trim();
         var targets = [];
-        var splitPoint = restString.trim().search(/\s/); // split on first whitespace, the rest becomes the kill message
-        targets.push(game.getPlayerByNickOrThrow(restString.substr(0, splitPoint)));
+        var splitPoint = restString.search(/\s/); // split on first whitespace, the rest becomes the kill message
+        var targetNick = splitPoint === -1 ? restString : restString.substr(0, splitPoint);
+        targets.push(game.getPlayerByNickOrThrow(targetNick));
         this.message = restString.substr(splitPoint).trim();
         return targets;
     };
