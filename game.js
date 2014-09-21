@@ -155,7 +155,7 @@ var Game = function()
                 this.players[sender].onCommand(commandWord, restString);
             }
         } catch(e) {
-            this.communicationInterface.sendPublicMessage(e);
+            this.communicationInterface.sendPublicMessage(e.toString());
         }
     };
 
@@ -167,7 +167,8 @@ var Game = function()
                 this.players[sender].onCommand(commandWord, restString);
             }
         } catch(e) {
-            this.communicationInterface.sendPrivateMessage(e);
+            console.log(e);
+            this.communicationInterface.sendPrivateMessage(e.toString());
         }
     };
 
@@ -398,17 +399,17 @@ var Game = function()
         if(!this.isStarted) {
             throw new Error("Can't call a vote before the game has started.");
         }
-        if(this.airlockVoteTarget != null) {
-            throw new Error("There is already an airlock vote in progress for " + this.airlockVoteTarget.nick);
+        if(this.voteInProgress) {
+            throw new Error("There is already a vote in progress.");
         }
         var player;
         restString = restString.trim();
         if(restString === "") {
             player = null; // call a vote to not airlock anyone
-            this.communicationInterface.sendPublicMessage(actor + " has called a vote to skip throwing anyone out of the airlock today.");
+            this.communicationInterface.sendPublicMessage(actor.nick + " has called a vote to skip throwing anyone out of the airlock today.");
         } else {
             player = this.getAlivePlayerByNickOrThrow(restString);
-            this.communicationInterface.sendPublicMessage(actor + " has called a vote to throw " + restString.irc.bold() + " out of the airlock!");
+            this.communicationInterface.sendPublicMessage(actor.nick + " has called a vote to throw " + restString.irc.bold() + " out of the airlock!");
         }
         this.airlockVoteTarget = player;
         this.voteInProgress = true;

@@ -54,7 +54,7 @@ CylonBot.prototype.sendPrivateMessage = function(targetNick, message) {
     },this);
 };
 
-var game = new Game();
-var bot = new CylonBot("localhost", "CylonMafiaBot", "#asd", "johannes", game);
+//var game = new Game();
+//var bot = new CylonBot("bduc.org", "CylonMafiaBot", "#asd", "johannes", game);
 
 module.exports = CylonBot;
