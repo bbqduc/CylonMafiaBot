@@ -6,6 +6,7 @@ var assert = require("should");
 var fs = require("fs");
 var _ = require("lodash");
 var roles = require("../roles");
+var Game = require("../game");
 
 describe('Roles', function() {
     var names = [];
@@ -28,7 +29,8 @@ describe('Roles', function() {
                     obj.getInitialMessage.should.be.type("function");
                 });
                 it('getInitialMessage should return a string', function () {
-                    obj.getInitialMessage().should.be.type("string");
+                    var game = new Game();
+                    obj.getInitialMessage(game).should.be.type("string");
                 });
             });
             describe('commandWords', function () {

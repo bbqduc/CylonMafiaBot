@@ -14,25 +14,35 @@ describe("Game", function() {
 
     describe("Joining and leaving", function() {
         var game = new Game();
+        beforeEach(function() { game = new Game();});
         it("should be possible to join a game", function() {
             game.onPublicMessage("TestUser1", "!join");
             game.onPublicMessage("TestUser1", "!join");
             _.size(game.players).should.be.exactly(1);
         });
         it("should be possible to leave a game", function() {
+            game.onPublicMessage("TestUser1", "!join");
             game.onPublicMessage("TestUser1", "!leave");
             game.onPublicMessage("TestUser1", "!leave");
             _.size(game.players).should.be.exactly(0);
         });
         it("should not be possible to join an ongoing game", function() {
             game.onPublicMessage("TestUser1", "!join");
+            game.onPublicMessage("TestUser2", "!join");
+            game.onPublicMessage("TestUser3", "!join");
+            game.onPublicMessage("TestUser4", "!join");
             game.startGame();
             game.onPublicMessage("TestUser2", "!join");
-            _.size(game.players).should.be.exactly(1);
+            _.size(game.players).should.be.exactly(4);
         });
         it("should not be possible to leave an ongoing game", function() {
+            game.onPublicMessage("TestUser1", "!join");
+            game.onPublicMessage("TestUser2", "!join");
+            game.onPublicMessage("TestUser3", "!join");
+            game.onPublicMessage("TestUser4", "!join");
+            game.startGame();
             game.onPublicMessage("TestUser1", "!leave");
-            _.size(game.players).should.be.exactly(1);
+            _.size(game.players).should.be.exactly(4);
         });
     });
     describe("Determining roles", function() {

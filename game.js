@@ -120,18 +120,26 @@ var Game = function()
 
 
     Game.prototype.handlePublicCommand = function(sender, commandWord, restString) {
-        if(this.commandHandlers[commandWord] != null) {
-            this.commandHandlers[commandWord](sender, restString);
-        } else if(this.players[sender] != null && !this.players[sender].dead) {
-            this.players[sender].onCommand(commandWord, restString);
+        try {
+            if (this.commandHandlers[commandWord] != null) {
+                this.commandHandlers[commandWord](sender, restString);
+            } else if (this.players[sender] != null && !this.players[sender].dead) {
+                this.players[sender].onCommand(commandWord, restString);
+            }
+        } catch(e) {
+            this.communicationInterface.sendPublicMessage(e);
         }
     };
 
     Game.prototype.handlePrivateCommand = function(sender, commandWord, restString) {
-        if(this.commandHandlers[commandWord] != null) {
-            this.commandHandlers[commandWord](sender, restString);
-        } else if(this.players[sender] != null && !this.players[sender].dead){
-            this.players[sender].onCommand(commandWord, restString);
+        try {
+            if (this.commandHandlers[commandWord] != null) {
+                this.commandHandlers[commandWord](sender, restString);
+            } else if (this.players[sender] != null && !this.players[sender].dead) {
+                this.players[sender].onCommand(commandWord, restString);
+            }
+        } catch(e) {
+            this.communicationInterface.sendPrivateMessage(e);
         }
     };
 
@@ -169,12 +177,18 @@ var Game = function()
         {
             roles[i].player = player;
             player.role = roles[i++];
-            this.communicationInterface.sendPrivateMessage(player.nick, player.role.getInitialMessage());
+            this.communicationInterface.sendPrivateMessage(player.nick, player.role.getInitialMessage(this));
         }, this);
     };
 
     Game.prototype.startGame = function()
     {
+        if(this.gameStarted) {
+            throw new Error("Game already running.");
+        }
+        if(_.size(this.players) < 4) {
+            throw new Error("Not much point to play with under 4 people!");
+        }
         this.gameStarted = true;
         this.communicationInterface.sendPublicMessage("Game starting!");
         this.determineRoles();
@@ -350,6 +364,7 @@ var Game = function()
 
     this.commandHandlers = {
         "join": Game.prototype.addPlayer.bind(this),
+        "start": Game.prototype.startGame.bind(this),
         "leave": Game.prototype.removePlayer.bind(this)
     };
 };

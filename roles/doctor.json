@@ -1,6 +1,6 @@
 {
     "abilities": ["protector"],
-    "name": "Doctor",
+    "name": "Doctor Cottle",
     "faction": "Human",
     "winresolver": "factionwinresolver"
 }

@@ -4,6 +4,7 @@
 
 var irc = require("irc");
 var Game = require("./game");
+var _ = require("lodash");
 
 var CylonBot = function(server, botnick, channel, maintainernick, game, callback) {
     this.client = new irc.Client(server, botnick, {channels: [channel]});
@@ -40,14 +41,20 @@ var CylonBot = function(server, botnick, channel, maintainernick, game, callback
 
 
 CylonBot.prototype.sendPublicMessage = function(message) {
-    this.client.say(this.channel, message);
+    var msgs = message.split('\n');
+    _.forEach(msgs, function(msg, index) {
+        this.client.say(this.channel, msg);
+    }, this);
 };
 
 CylonBot.prototype.sendPrivateMessage = function(targetNick, message) {
-    this.client.say(targetNick, message);
+    var msgs = message.split('\n');
+    _.forEach(msgs, function(msg, index) {
+        this.client.say(targetNick, msg);
+    },this);
 };
 
-//var game = new Game();
-//var bot = new CylonBot("localhost", "CylonMafiaBot", "#asd", "johannes", game);
+var game = new Game();
+var bot = new CylonBot("localhost", "CylonMafiaBot", "#asd", "johannes", game);
 
 module.exports = CylonBot;

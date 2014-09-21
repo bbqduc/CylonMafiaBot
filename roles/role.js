@@ -15,10 +15,11 @@ var Role = function() {
     this.abilityUsed = false;
 };
 
-Role.prototype.getInitialMessage = function() {
-    var ret = "You are a " + this.name + ".";
+Role.prototype.getInitialMessage = function(game) {
+    var ret = "You are " + this.NAME + ".\n";
+    ret += this.winResolver.getInitialMessage(this, game);
 
-    ret += "\nHere is a list of your abilities:";
+    ret += "\nHere is a list of your abilities:\n";
     _.forEach(this.abilities, function (element, index) {
         ret += element.commandWord + ": " + element.abilityDescription + "\n";
     });
