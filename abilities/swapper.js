@@ -2,6 +2,7 @@
  * Created by johannes on 20/09/14.
  */
 
+var utils = require("../utils");
 var Swapper = function()
 {
     this.commandWord = "swap";
@@ -38,8 +39,8 @@ var Swapper = function()
         game.addAbilityTargetListener(abilityParameters.targets[1], this.swappingListener);
     }
 
-    this.useAbility = function(game, restString) {
-        var split = getWhiteSpaceSeparatedParameters(restString, 2);
+    this.parseCommand = function(game, restString) {
+        var split = utils.getWhiteSpaceSeparatedParameters(restString, 2);
         var targets = [];
         targets[0] = game.getPlayerByNickOrThrow(split[0]);
         targets[1] = game.getPlayerByNickOrThrow(split[1]);

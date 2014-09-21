@@ -31,10 +31,10 @@ describe('Abilities', function() {
                     obj.abilityCallback.should.be.type("function");
                 });
             });
-            describe('useAbility', function () {
-                it('should have the useAbility method', function () {
-                    obj.should.have.property("useAbility");
-                    obj.useAbility.should.be.type("function");
+            describe('parseCommand', function () {
+                it('should have the parseCommand method', function () {
+                    obj.should.have.property("parseCommand");
+                    obj.parseCommand.should.be.type("function");
                 });
             });
             describe('abilityDescription', function () {

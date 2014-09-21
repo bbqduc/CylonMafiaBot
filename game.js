@@ -7,6 +7,7 @@ require('irc-colors').global()
 var _ = require("lodash");
 var Player = require("./player");
 var roleClasses = require("./roles");
+var abilities = require("./abilities");
 
 var DummyCommunicationInterface = function()
 {
@@ -24,7 +25,28 @@ var Game = function()
     this.killedPlayers = {};
     this.killedDuringLastNight = [];
     this.currentDay = 0;
+    this.isNight = false;
     this.gameStarted = false;
+    this.abilityActorListeners = {};
+    this.abilityTargetListeners = {};
+
+    // TODO : this doesn't belong here!
+    this.abilityOrdering = [
+        "blocker",
+        "swapper",
+        "killer",
+        "protector"
+    ];
+
+    _.forOwn(abilities, function(role, name) {
+        if(name != "role" && !_.contains(this.abilityOrdering, name)) {
+            this.abilityOrdering.push(name);
+        }
+    }, this);
+
+    _.forEach(this.abilityOrdering, function(name, index) {
+        abilities[name].prototype.RESOLVEORDER = index;
+    });
 
     Game.prototype.startServing = function() {};
 
@@ -164,6 +186,7 @@ var Game = function()
         this.detectNewDeadPeople();
         this.sendMessagesForDay(this.currentDay);
         this.currentDay++;
+        this.isNight = false;
         this.communicationInterface.sendPublicMessage("=========== DAY " + this.currentDay + "===========");
     };
 
@@ -175,6 +198,60 @@ var Game = function()
             if(player.mKillMessage != "")
                 this.communicationInterface.sendPublicMessage("The killer left a message : " + message);
         });
+    };
+
+    Game.prototype.getAlivePlayerByNickOrThrow = function(nick) {
+        if(this.players[nick] == null || this.players[nick].dead) {
+            throw "No living player named " + nick + " in the game.";
+        };
+        return this.players[nick];
+    };
+
+    Game.prototype.getPlayerByNickOrThrow = function(nick) {
+        if(this.players[nick] == null) {
+            throw "No player named " + nick + " in the game.";
+        };
+        return this.players[nick];
+    };
+
+    Game.prototype.useAbility = function(ability, actor, targets) {
+        if(!this.isNight) { // TODO : this check doesn't really belong here
+            throw "Cannot use this ability during the day.";
+        }
+        this.abilitiesUsed.push({ability: ability, actor: actor, targets: targets});
+    };
+
+    Game.prototype.resolveAbilities = function() {
+        this.abilitiesUsed = _.sortBy(this.abilitiesUsed, "RESOLVEORDER");
+        _.forEach(this.abilitiesUsed, function(abilityParameters) {
+            var notBlocked = this.launchListeners(abilityParameters);
+            if(notBlocked) {
+                abilityParameters.abilityCallback(this);
+            }
+        });
+        this.abilitiesUsed = [];
+        this.abilityActorListeners = {};
+        this.abilityTargetListeners = {};
+    };
+
+    Game.prototype.launchListeners = function(abilityParameters)
+    {
+        _.forEach(this.abilityActorListeners[abilityParameters.actor], function(listener, key) {
+            listener(abilityParameters);
+        });
+        _.forEach(abilityParameters.targets, function(target, index) {
+            _.forEach(this.abilityTargetListeners[target], function (listener, key) {
+                listener(abilityParameters);
+            });
+        });
+    }
+
+    Game.prototype.addAbilityActorListener = function(target, listener) {
+        this.abilityActorListeners[target.nick].push(listener);
+    };
+
+    Game.prototype.addAbilityTargetListener = function(target, listener) {
+        this.abilityTargetListeners[target.nick].push(listener);
     };
 
     this.commandHandlers = {
