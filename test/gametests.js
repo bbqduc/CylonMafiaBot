@@ -8,6 +8,7 @@ var _ = require("lodash");
 var utils = require("../utils");
 
 var Game = require("../game");
+var roleClasses = require("../roles");
 
 describe("Game", function() {
 
@@ -168,46 +169,92 @@ describe("Game", function() {
         });
     });
     describe("Using abilities", function() {
-        beforeEach(function() {
+        var initFunc = function() {
             game = new Game();
-            utils.addManyPlayers(game, 5, "TestUser");
+            _.forOwn(roleClasses, function(role, name) {
+                if(name != "role") {
+                    game.addPlayer(name, "");
+                }
+            });
             game.startGame();
-        });
+            _.forOwn(roleClasses, function(role, name) {
+                if(name != "role") {
+                    game.getPlayerByNickOrThrow(name).role = new roleClasses[name];
+                }
+            });
+        };
+        beforeEach(initFunc);
+
         describe("Kill ability", function() {
             var number2;
             beforeEach(function() {
-                number2 = _.find(game.getAlivePlayers(), function(player) {
-                    return player.role.NAME === "Cylon Number 2";
-                });
+                number2 = game.getPlayerByNickOrThrow("number2");
             });
             it("should not be possible to use during the day", function () {
                 (function() {number2.receiveCommand("kill", "TestUser1") }).should.throw();
             });
             it("should be possible to use during the night", function () {
                 game.isNight = true;
-                (function() {number2.receiveCommand("kill", "TestUser1") }).should.not.throw();
-            });
-            it("should result in the target's death with no outside intervention", function () {
-                game.isNight = true;
-                var numPlayers = game.getAlivePlayers().length;
-                (function() {number2.receiveCommand("kill", "TestUser1") }).should.not.throw();
-                game.resolveAbilities();
-                game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
-                (function() {game.getAlivePlayerByNickOrThrow("TestUser1"); }).should.throw();
+                (function() {number2.receiveCommand("kill", "tomzarek") }).should.not.throw();
             });
             it("should not be possible to use it more than once per night", function () {
                 game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function() {number2.receiveCommand("kill", "TestUser1") }).should.not.throw();
-                (function() {number2.receiveCommand("kill", "TestUser1") }).should.throw();
+                (function() {number2.receiveCommand("kill", "tomzarek") }).should.not.throw();
+                (function() {number2.receiveCommand("kill", "coloneltigh") }).should.throw();
             });
             it("should be possible to use it again on the next night", function () {
                 game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function() {number2.receiveCommand("kill", "TestUser1") }).should.not.throw();
+                (function() {number2.receiveCommand("kill", "tomzarek") }).should.not.throw();
                 game.resolveAbilities();
                 game.isNight = true;
-                (function() {number2.receiveCommand("kill", "TestUser2") }).should.not.throw();
+                (function() {number2.receiveCommand("kill", "coloneltigh") }).should.not.throw();
+            });
+            it("should result in the target's death with no outside intervention", function () {
+                game.isNight = true;
+                var numPlayers = game.getAlivePlayers().length;
+                (function() {number2.receiveCommand("kill", "tomzarek") }).should.not.throw();
+                game.resolveAbilities();
+                game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
+                (function() {game.getAlivePlayerByNickOrThrow("tomzarek"); }).should.throw();
+            });
+        });
+        describe("Block ability", function() {
+            var blocker;
+            beforeEach(function() {
+                blocker = game.getPlayerByNickOrThrow("cylonblocker");
+            });
+            it("should not be possible to use during the day", function () {
+                (function() {blocker.receiveCommand("block", "number2") }).should.throw();
+            });
+            it("should be possible to use during the night", function () {
+                game.isNight = true;
+                (function() {blocker.receiveCommand("block", "number2") }).should.not.throw();
+            });
+            it("should not be possible to use it more than once per night", function () {
+                game.isNight = true;
+                var numPlayers = game.getAlivePlayers().length;
+                (function() {blocker.receiveCommand("block", "number2") }).should.not.throw();
+                (function() {blocker.receiveCommand("block", "number2") }).should.throw();
+            });
+            it("should be possible to use it again on the next night", function () {
+                game.isNight = true;
+                var numPlayers = game.getAlivePlayers().length;
+                (function() {blocker.receiveCommand("block", "number2") }).should.not.throw();
+                game.resolveAbilities();
+                game.isNight = true;
+                (function() {blocker.receiveCommand("block", "coloneltigh") }).should.not.throw();
+            });
+            it("should block a kill command", function () {
+                var number2 = game.getPlayerByNickOrThrow("number2");
+                var numPlayers = game.getAlivePlayers().length;
+                game.isNight = true;
+                (function() {number2.receiveCommand("kill", "tomzarek") }).should.not.throw();
+                (function() {blocker.receiveCommand("block", "number2") }).should.not.throw();
+                game.resolveAbilities();
+                game.getAlivePlayers().length.should.be.exactly(numPlayers);
+                (function() {game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
             });
         });
     });

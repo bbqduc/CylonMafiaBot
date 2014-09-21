@@ -191,6 +191,7 @@ var Game = function()
         this.currentDay++;
         this.isNight = false;
         this.communicationInterface.sendPublicMessage("=========== DAY " + this.currentDay + "===========");
+        this.resetAbilities();
         this.triggerNewDayCallbacks();
     };
 
@@ -219,28 +220,34 @@ var Game = function()
     };
 
     Game.prototype.resolveAbilities = function() {
-        this.abilitiesUsed = _.sortBy(this.abilitiesUsed, "RESOLVEORDER");
+        this.abilitiesUsed = _.sortBy(this.abilitiesUsed, function(entry) { return entry.ability.RESOLVEORDER });
         _.forEach(this.abilitiesUsed, function(abilityParameters) {
             var notBlocked = this.launchListeners(abilityParameters);
             if(notBlocked) {
                 abilityParameters.ability.abilityCallback(this, abilityParameters);
             }
         }, this);
+        this.advanceToNextDay();
+    };
+    Game.prototype.resetAbilities = function() {
         this.abilitiesUsed = [];
         this.abilityActorListeners = {};
         this.abilityTargetListeners = {};
-        this.advanceToNextDay();
+        _.forEach(this.getAlivePlayers(), function (player, index) {
+            this.abilityActorListeners[player.nick] = [];
+            this.abilityTargetListeners[player.nick] = [];
+        }, this);
     };
 
     Game.prototype.launchListeners = function(abilityParameters)
     {
         var notBlocked = true;
-        _.forEach(this.abilityActorListeners[abilityParameters.actor], function(listener, key) {
-            notBlocked = notBlocked && listener(abilityParameters);
+        _.forEach(this.abilityActorListeners[abilityParameters.actor.nick], function(listener, key) {
+            notBlocked = notBlocked && listener(this, abilityParameters);
         });
         _.forEach(abilityParameters.targets, function(target, index) {
-            _.forEach(this.abilityTargetListeners[target], function (listener, key) {
-                notBlocked = notBlocked && listener(abilityParameters);
+            _.forEach(this.abilityTargetListeners[target.nick], function (listener, key) {
+                notBlocked = notBlocked && listener(this, abilityParameters);
             });
         }, this);
         return notBlocked;

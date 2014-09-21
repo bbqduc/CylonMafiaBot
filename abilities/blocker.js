@@ -9,6 +9,8 @@ var Blocker = function()
     this.commandWord = "block";
     this.abilityDescription = "Block another player from performing any actions during the night. Usage : !" + this.commandWord + " targetNick";
     this.target = null;
+    this.enabledNight = true;
+    this.enabledDay = false;
     this.blockingListener = function(game, abilityParameters)
     {
         if(abilityParameters.actor === this.target) {
