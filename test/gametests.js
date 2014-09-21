@@ -308,5 +308,55 @@ describe("Game", function() {
                 (function () { game.getAlivePlayerByNickOrThrow("number2");}).should.throw();
             });
         });
+        describe("Protect ability", function() {
+            var protector;
+            beforeEach(function () {
+                protector = game.getPlayerByNickOrThrow("doctor");
+            });
+            it("should not be possible to use during the day", function () {
+                (function () {
+                    protector.onCommand("protect", "tomzarek")
+                }).should.throw();
+            });
+            it("should be possible to use during the night", function () {
+                game.isNight = true;
+                (function () {
+                    protector.onCommand("protect", "tomzarek")
+                }).should.not.throw();
+            });
+            it("should not be possible to use it more than once per night", function () {
+                game.isNight = true;
+                (function () {
+                    protector.onCommand("protect", "tomzarek")
+                }).should.not.throw();
+                (function () {
+                    protector.onCommand("protect", "tomzarek")
+                }).should.throw();
+            });
+            it("should be possible to use it again on the next night", function () {
+                game.isNight = true;
+                (function () {
+                    protector.onCommand("protect", "tomzarek")
+                }).should.not.throw();
+                game.resolveAbilities();
+                game.isNight = true;
+                (function () {
+                    protector.onCommand("protect", "tomzarek")
+                }).should.not.throw();
+            });
+            it("should protect from a kill order", function () {
+                game.isNight = true;
+                var numPlayers = game.getAlivePlayers().length;
+                (function () {
+                    protector.onCommand("protect", "tomzarek")
+                }).should.not.throw();
+                (function () {
+                    game.onPrivateMessage("number2", "!kill tomzarek");
+                }).should.not.throw();
+                game.resolveAbilities();
+                game.getAlivePlayers().length.should.be.exactly(numPlayers);
+                (function () { game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
+            });
+        });
     });
 });
