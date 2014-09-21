@@ -30,5 +30,12 @@ Role.prototype.winResolver = new FactionWinResolver(Role.prototype.FACTION);
 Role.prototype.resolveWin = function(game) {
     return this.winResolver.resolveWin(game, this);
 };
+Role.prototype.parseCommand = function(commandWord, restString) {
+    var ability = _.find(this.abilities, {"commandWord" : commandWord});
+    if(ability == null) {
+        throw "No such command: " + commandWord;
+    }
+    ability.parseCommand(restString);
+};
 
 module.exports = Role;

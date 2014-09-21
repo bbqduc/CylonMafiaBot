@@ -29,6 +29,10 @@ var Game = function()
     this.gameStarted = false;
     this.abilityActorListeners = {};
     this.abilityTargetListeners = {};
+    this.airlockVoteTarget = null;
+    this.yesVotes = 0;
+    this.noVotes = 0;
+    this.votedPlayers = [];
 
     // TODO : this doesn't belong here!
     this.abilityOrdering = [
@@ -73,7 +77,7 @@ var Game = function()
         if(restString != "") {
            return false;
         }
-        this.players[nick] = new Player(nick);
+        this.players[nick] = new Player(nick, this);
         this.communicationInterface.sendPublicMessage(nick + " boarded the ship! Currently " + _.size(this.players) + " players on board. To leave the game before it starts, type " + "!leave".irc.bold() + ". For a full list of available commands, type " + "!commands.".irc.bold());
         return true;
     };
@@ -139,7 +143,7 @@ var Game = function()
         });
         var numberOfCylons = Math.round(_.size(this.players) / 3.0);
         if(cylonRoles.length < numberOfCylons || humanRoles.length < _.size(this.players)-numberOfCylons) {
-            throw "Oops, not enough roles for all players!";
+            throw new Error("Oops, not enough roles for all players!");
         }
         cylonRoles = _.shuffle(cylonRoles);
         humanRoles = _.shuffle(humanRoles);
@@ -195,28 +199,28 @@ var Game = function()
         _.forEach(this.mKilledDuringLastNight, function(player, index)
         {
             this.communicationInterface.sendPublicMessage(player.mNick + " was brutally murdered during the night!");
-            if(player.mKillMessage != "")
-                this.communicationInterface.sendPublicMessage("The killer left a message : " + message);
+            if(player.killMessage != "")
+                this.communicationInterface.sendPublicMessage("The killer left a message : " + player.killMessage);
         });
     };
 
     Game.prototype.getAlivePlayerByNickOrThrow = function(nick) {
         if(this.players[nick] == null || this.players[nick].dead) {
-            throw "No living player named " + nick + " in the game.";
+            throw new Error("No living player named " + nick + " in the game.");
         };
         return this.players[nick];
     };
 
     Game.prototype.getPlayerByNickOrThrow = function(nick) {
         if(this.players[nick] == null) {
-            throw "No player named " + nick + " in the game.";
+            throw new Error("No player named " + nick + " in the game.");
         };
         return this.players[nick];
     };
 
     Game.prototype.useAbility = function(ability, actor, targets) {
         if(!this.isNight) { // TODO : this check doesn't really belong here
-            throw "Cannot use this ability during the day.";
+            throw new Error("Cannot use this ability during the day.");
         }
         this.abilitiesUsed.push({ability: ability, actor: actor, targets: targets});
     };
@@ -252,6 +256,60 @@ var Game = function()
 
     Game.prototype.addAbilityTargetListener = function(target, listener) {
         this.abilityTargetListeners[target.nick].push(listener);
+    };
+
+    Game.prototype.registerVote = function(player, votedYes) {
+        if(!this.gameStarted) {
+            throw new Error("Can't vote before the game has started.");
+        }
+        if(this.airlockVoteTarget == null) {
+            throw new Error("No vote in progress.");
+        }
+        if(_.contains(this.votedPlayers, player.nick)) {
+            throw new Error("Can't vote more than once.");
+        }
+        if(votedYes === true) {
+            this.communicationInterface.sendPublicMessage(player.nick + " voted " + "YES".irc.bold.green());
+            this.yesVotes++;
+        }
+        else if(votedYes === false) {
+            this.communicationInterface.sendPublicMessage(player.nick + " voted " + "NO".irc.bold.red());
+            this.noVotes++;
+        }
+        else { throw new Error("Vote " + votedYes + " not recognized."); }
+        this.votedPlayers.push(player.nick);
+        if(this.votedPlayers.length == this.getAlivePlayers().length) {
+            this.resolveVote();
+        }
+    };
+
+    Game.prototype.resetVote = function() {
+        this.airlockVoteTarget = null;
+        this.yesVotes = 0;
+        this.noVotes = 0;
+        this.votedPlayers = [];
+    };
+    Game.prototype.resolveVote = function() {
+        if(this.yesVotes > this.noVotes) {
+            this.communicationInterface.sendPublicMessage("Motion passes. " + this.airlockVoteTarget.nick.irc.bold() + " is thrown out of the airlock.");
+            this.airlockVoteTarget.dead = true;
+        } else {
+            this.communicationInterface.sendPublicMessage("Motion fails. " + this.airlockVoteTarget.nick.irc.bold() + " stays alive.");
+        }
+        this.resetVote();
+    };
+
+    Game.prototype.callAirlockVote = function(actor, restString) {
+        if(!this.gameStarted) {
+            throw new Error("Can't call a vote before the game has started.");
+        }
+        if(this.airlockVoteTarget != null) {
+            throw new Error("There is already an airlock vote in progress for " + this.airlockVoteTarget.nick);
+        }
+        restString = restString.trim();
+        var player = this.getAlivePlayerByNickOrThrow(restString);
+        this.airlockVoteTarget = player;
+        this.communicationInterface.sendPublicMessage(actor + " has called a vote to throw " + restString.irc.bold() + " out of the airlock!");
     };
 
     this.commandHandlers = {

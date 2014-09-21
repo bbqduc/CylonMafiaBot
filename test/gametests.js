@@ -5,6 +5,7 @@
 
 var assert = require("should");
 var _ = require("lodash");
+var utils = require("../utils");
 
 var Game = require("../game");
 
@@ -55,6 +56,81 @@ describe("Game", function() {
             });
             var uniqNames = _.uniq(roleNames);
             uniqNames.length.should.be.exactly(roleNames.length);
+        });
+    });
+    describe("Voting", function() {
+        var game;
+        beforeEach(function() {
+            game = new Game();
+            utils.addManyPlayers(game, 5, "TestUser");
+            game.startGame();
+        });
+        it("Calling a vote should not be possible when the game hasn't started", function() {
+            game = new Game();
+            utils.addManyPlayers(game, 5, "TestUser");
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            (function() { player.callAirlockVote("TestUser2")}).should.throw();
+        });
+        it("Voting should not be possible until a vote has been called", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            (function() { player.vote("yes")}).should.throw();
+        });
+        it("Calling a vote should be possible when no vote is active", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            game.airlockVoteTarget.nick.should.be.exactly("TestUser2");
+        });
+        it("Voting should be possible once vote has been called", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            (function() { player.vote("yes")}).should.not.throw();
+        });
+        it("it should not be possible to vote more than once", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            (function() { player.vote("yes")}).should.not.throw();
+            game.yesVotes.should.be.exactly(1);
+            (function() { player.vote("yes")}).should.throw();
+            game.yesVotes.should.be.exactly(1);
+        });
+        it("it should not be possible to change your vote", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            (function() { player.vote("yes")}).should.not.throw();
+            game.yesVotes.should.be.exactly(1);
+            (function() { player.vote("no")}).should.throw();
+            game.yesVotes.should.be.exactly(1);
+        });
+        it("voting should finish when all players have voted", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            _.forEach(game.getAlivePlayers(), function(player, index) {
+                (function() { player.vote("no")}).should.not.throw();
+            });
+            (game.airlockVoteTarget == null).should.be.true;
+            game.yesVotes.should.be.exactly(0);
+            game.noVotes.should.be.exactly(0);
+            game.votedPlayers.length.should.be.exactly(0);
+        });
+        it("a majority yes-vote should result in the target dying", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            var numPlayers = game.getAlivePlayers().length;
+            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            _.forEach(game.getAlivePlayers(), function(player, index) {
+                (function() { player.vote("yes")}).should.not.throw();
+            });
+            game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
+            (function() { game.getAlivePlayerByNickOrThrow("TestUser2")}).should.throw();
+        });
+        it("a majority no-vote should result in the target surviving", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            var numPlayers = game.getAlivePlayers().length;
+            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            _.forEach(game.getAlivePlayers(), function(player, index) {
+                (function() { player.vote("no")}).should.not.throw();
+            });
+            game.getAlivePlayers().length.should.be.exactly(numPlayers);
+            (function() { game.getAlivePlayerByNickOrThrow("TestUser2")}).should.not.throw();
         });
     });
 });

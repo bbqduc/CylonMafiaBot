@@ -9,5 +9,10 @@ module.exports = {
             throw "Too many parameters provided! Expected " + expectedLength + ", got " + split.length;
         }
         return split;
+    },
+    addManyPlayers: function(game, numPlayers, namePrefix) {
+        for (var i = 0; i < numPlayers; ++i) {
+            game.addPlayer(namePrefix + i, "");
+        }
     }
 };
