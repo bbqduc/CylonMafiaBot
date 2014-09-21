@@ -235,8 +235,23 @@ var Game = function()
         return this.players[nick];
     };
 
+    Game.prototype.isNightDone = function() {
+        var allUsed = true;
+        _.forEach(this.getAlivePlayers(), function(player, key) {
+            allUsed = allUsed && player.role.abilityUsed;
+        }, this);
+        return allUsed;
+    };
+
+    Game.prototype.nextDayIfAllPlayersDone = function() {
+        if(this.isNightDone()) {
+            this.resolveAbilities();
+        }
+    };
+
     Game.prototype.useAbility = function(ability, actor, targets) {
         this.abilitiesUsed.push({ability: ability, actor: actor, targets: targets});
+        this.nextDayIfAllPlayersDone();
     };
 
     Game.prototype.resolveAbilities = function() {
@@ -327,6 +342,7 @@ var Game = function()
             this.communicationInterface.sendPublicMessage(message);
             this.resetVote();
             this.isNight = true;
+            this.nextDayIfAllPlayersDone();
         } else {
             var message = "Motion fails. ";
             if(this.airlockVoteTarget == null) {

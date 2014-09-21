@@ -4,6 +4,12 @@ var Player = function(nick, game) {
     this.game = game;
     this.killedBy = null;
     this.killMessage = null;
+
+    this.commandHandlers = {
+        "vote": Player.prototype.vote.bind(this),
+        "pass": Player.prototype.passTurn.bind(this),
+        "airlock": Player.prototype.callAirlockVote.bind(this)
+    };
 };
 
 Player.prototype.sendMessage = function(message) {
@@ -26,6 +32,11 @@ Player.prototype.newDayCallback = function() {
     this.role.newDayCallback();
 }
 
+Player.prototype.passTurn = function() {
+    this.role.abilityUsed = true;
+    this.game.nextDayIfAllPlayersDone();
+};
+
 Player.prototype.vote = function(restString) {
     restString = restString.trim();
     var cmpString = restString.toUpperCase();
@@ -41,11 +52,6 @@ Player.prototype.vote = function(restString) {
        throw new Error("Couldn't parse a yes/no vote from " + restString);
     }
     this.game.registerVote(this, votedYes);
-};
-
-Player.prototype.commandHandlers = {
-    "vote": Player.prototype.vote.bind(this),
-    "airlock": Player.prototype.callAirlockVote.bind(this)
 };
 
 module.exports = Player;

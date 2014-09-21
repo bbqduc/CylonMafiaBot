@@ -368,5 +368,31 @@ describe("Game", function() {
                 (function () { game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
             });
         });
+        describe("Night cycle", function() {
+            it("it should become day when all players have used their abilities/passed", function () {
+                game.isNight.should.be.false;
+                game.isNight = true;
+                _.forEach(game.getAlivePlayers(), function(player, key) {
+                    (function() {player.onCommand("pass", "");}).should.not.throw();
+                });
+                game.isNight.should.be.false;
+            });
+            it("abilities should be resolved after cycle", function () {
+                game.isNight.should.be.false;
+                game.isNight = true;
+                var numPlayers = game.getAlivePlayers().length;
+                (function() {game.getPlayerByNickOrThrow("number2").onCommand("kill", "tomzarek") }).should.not.throw();
+                _.forEach(game.getAlivePlayers(), function(player, key) {
+                    if(player.nick != "number2") {
+                        (function () {
+                            player.onCommand("pass", "");
+                        }).should.not.throw();
+                    }
+                });
+                game.isNight.should.be.false;
+                game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
+                (function() {game.getAlivePlayerByNickOrThrow("tomzarek"); }).should.throw();
+            });
+        });
     });
 });

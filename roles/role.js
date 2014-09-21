@@ -50,7 +50,7 @@ Role.prototype.parseCommand = function(commandWord, restString, game, actor) {
     this.abilityUsed = true;
 };
 Role.prototype.newDayCallback = function() {
-    this.abilityUsed = false;
+    this.abilityUsed = this.commandWords.length === 0;
 };
 
 module.exports = Role;
