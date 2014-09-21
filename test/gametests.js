@@ -395,4 +395,47 @@ describe("Game", function() {
             });
         });
     });
+    describe("Game flow", function() {
+        beforeEach(function() {
+            game = new Game();
+            _.forOwn(roleClasses, function(role, name) {
+                if(name != "role") {
+                    game.addPlayer(name, "");
+                }
+            });
+            game.startGame();
+            _.forOwn(roleClasses, function(role, name) {
+                if(name != "role") {
+                    game.getPlayerByNickOrThrow(name).role = new roleClasses[name];
+                }
+            });
+        });
+        it("it should end in Cylon victory when humans are dead", function () {
+            while(game.getAlivePlayersFromFaction("Human").length > 0) {
+                // Day
+                game.isNight.should.be.false;
+                var n2 = game.getPlayerByNickOrThrow("number2");
+                n2.callAirlockVote("");
+                _.forEach(game.getAlivePlayers(), function (player, key) {
+                    (function () {
+                        player.vote("yes");
+                    }).should.not.throw();
+                });
+
+                // Night
+                game.isNight.should.be.true;
+                (function () {
+                    game.getPlayerByNickOrThrow("number2").onCommand("kill", game.getAlivePlayersFromFaction("Human")[0].nick)
+                }).should.not.throw();
+                _.forEach(game.getAlivePlayers(), function (player, key) {
+                    if (player.nick != "number2") {
+                        (function () {
+                            player.onCommand("pass", "");
+                        }).should.not.throw();
+                    }
+                });
+            }
+            game.isStarted.should.be.false;
+        });
+    });
 });

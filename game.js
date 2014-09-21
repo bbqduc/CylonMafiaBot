@@ -7,7 +7,7 @@ require('irc-colors').global()
 var _ = require("lodash");
 var Player = require("./player");
 var roleClasses = require("./roles");
-var abilities = require("./abilities");
+var abilities = require("./abilities" );
 
 var DummyCommunicationInterface = function()
 {
@@ -21,21 +21,25 @@ var DummyCommunicationInterface = function()
 var Game = function()
 {
     this.communicationInterface = new DummyCommunicationInterface();
-    this.players = {};
-    this.killedPlayers = [];
-    this.killedDuringLastNight = [];
-    this.currentDay = 0;
-    this.isNight = false;
-    this.gameStarted = false;
-    this.abilityActorListeners = {};
-    this.abilityTargetListeners = {};
-    this.abilitiesUsed = [];
 
-    this.voteInProgress = false;
-    this.airlockVoteTarget = null;
-    this.yesVotes = 0;
-    this.noVotes = 0;
-    this.votedPlayers = [];
+    Game.prototype.reset = function() {
+        this.players = {};
+        this.killedPlayers = [];
+        this.currentDay = 0;
+        this.isNight = false;
+        this.isStarted = false;
+        this.abilityActorListeners = {};
+        this.abilityTargetListeners = {};
+        this.abilitiesUsed = [];
+
+        this.voteInProgress = false;
+        this.airlockVoteTarget = null;
+        this.yesVotes = 0;
+        this.noVotes = 0;
+        this.votedPlayers = [];
+    };
+
+    this.reset();
 
     // TODO : this doesn't belong here!
     this.abilityOrdering = [
@@ -57,6 +61,7 @@ var Game = function()
 
     Game.prototype.startServing = function() {};
 
+
     Game.prototype.getPlayersFromFaction = function(faction) {
         return _.filter(this.players, function(player) {
             return (player.role != null) && player.role.FACTION === faction;
@@ -64,8 +69,31 @@ var Game = function()
     };
 
     Game.prototype.getAlivePlayersFromFaction = function(faction) {
-
         return _.filter(this.getPlayersFromFaction(faction), {'dead': false});
+    };
+
+    Game.prototype.victoryCheck = function() {
+        var playersAliveAreAllWinners = true;
+        _.forEach(this.getAlivePlayers(), function(player, key) {
+            playersAliveAreAllWinners = playersAliveAreAllWinners && player.role.resolveWin(this);
+        }, this);
+        if(playersAliveAreAllWinners) {
+            this.communicationInterface.sendPublicMessage("========= Game Finished =========");
+            var winners = [];
+            var losers = [];
+            _.forOwn(this.players, function(player, nick) {
+                if(player.role.resolveWin(this)) {
+                   winners.push(player.nick + " (" + player.role.NAME + ")");
+                } else {
+                    losers.push(player.nick + " (" + player.role.NAME + ")");
+                }
+            }, this);
+            this.communicationInterface.sendPublicMessage("Winners: " + winners.join(", "));
+            this.communicationInterface.sendPublicMessage("Not-Winners: " + losers.join(", "));
+            this.reset();
+            return true;
+        }
+        return false;
     };
 
     Game.prototype.getAlivePlayers = function() {
@@ -73,7 +101,7 @@ var Game = function()
     };
 
     Game.prototype.addPlayer = function(nick, restString) {
-        if(this.gameStarted) {
+        if(this.isStarted) {
             this.communicationInterface.sendPublicMessage("Cannot join an ongoing game!");
             return false;
         }
@@ -86,7 +114,7 @@ var Game = function()
     };
     Game.prototype.removePlayer = function(nick)
     {
-        if(this.gameStarted) {
+        if(this.isStarted) {
             this.communicationInterface.sendPublicMessage("Cannot leave an ongoing game!");
             return false;
         }
@@ -143,30 +171,34 @@ var Game = function()
         }
     };
 
-    Game.prototype.determineRoles = function()
-    {
+    Game.prototype.determineRoles = function() {
         var cylonRoles = [];
         var humanRoles = [];
 
-        _.forOwn(roleClasses, function(role, name) {
-            if(role == roleClasses.role) {
+        _.forOwn(roleClasses, function (role, name) {
+            if (role == roleClasses.role) {
                 return;
             }
-            if(role.prototype.FACTION === "Cylon") {
+            if (role.prototype.FACTION === "Cylon") {
                 cylonRoles.push(new role());
             } else {
                 humanRoles.push(new role());
             }
         });
         var numberOfCylons = Math.round(_.size(this.players) / 3.0);
-        if(cylonRoles.length < numberOfCylons || humanRoles.length < _.size(this.players)-numberOfCylons) {
+        if (cylonRoles.length < numberOfCylons || humanRoles.length < _.size(this.players) - numberOfCylons) {
             throw new Error("Oops, not enough roles for all players!");
         }
         cylonRoles = _.shuffle(cylonRoles);
         humanRoles = _.shuffle(humanRoles);
         var roles = [];
-        for(i = 0; i < numberOfCylons; ++i) {
-            roles[i] = cylonRoles[i];
+        if (numberOfCylons === 1) { // If only 1 cylon, make sure he can at least kill
+            roles[0] = new roleClasses.number2();
+        }
+        else {
+            for (i = 0; i < numberOfCylons; ++i) {
+                roles[i] = cylonRoles[i];
+            }
         }
         for(i = numberOfCylons; i < _.size(this.players); ++i) {
             roles[i] = humanRoles[i-numberOfCylons];
@@ -183,13 +215,13 @@ var Game = function()
 
     Game.prototype.startGame = function()
     {
-        if(this.gameStarted) {
+        if(this.isStarted) {
             throw new Error("Game already running.");
         }
         if(_.size(this.players) < 4) {
             throw new Error("Not much point to play with under 4 people!");
         }
-        this.gameStarted = true;
+        this.isStarted = true;
         this.communicationInterface.sendPublicMessage("Game starting!");
         this.determineRoles();
         this.advanceToNextDay();
@@ -208,11 +240,13 @@ var Game = function()
     Game.prototype.advanceToNextDay = function()
     {
         this.detectNewDeadPeople();
-        this.currentDay++;
-        this.isNight = false;
-        this.communicationInterface.sendPublicMessage("=========== DAY " + this.currentDay + "===========");
-        this.resetAbilities();
-        this.triggerNewDayCallbacks();
+        if(!this.victoryCheck()) {
+            this.currentDay++;
+            this.isNight = false;
+            this.communicationInterface.sendPublicMessage("=========== DAY " + this.currentDay + "===========");
+            this.resetAbilities();
+            this.triggerNewDayCallbacks();
+        }
     };
 
     Game.prototype.triggerNewDayCallbacks = function() {
@@ -297,7 +331,7 @@ var Game = function()
     };
 
     Game.prototype.registerVote = function(player, votedYes) {
-        if(!this.gameStarted) {
+        if(!this.isStarted) {
             throw new Error("Can't vote before the game has started.");
         }
         if(!this.voteInProgress) {
@@ -341,8 +375,10 @@ var Game = function()
             }
             this.communicationInterface.sendPublicMessage(message);
             this.resetVote();
-            this.isNight = true;
-            this.nextDayIfAllPlayersDone();
+            if(!this.victoryCheck()) {
+                this.isNight = true;
+                this.nextDayIfAllPlayersDone();
+            }
         } else {
             var message = "Motion fails. ";
             if(this.airlockVoteTarget == null) {
@@ -359,7 +395,7 @@ var Game = function()
         if(this.isNight) {
             throw new Error("Can't call a vote at night.");
         }
-        if(!this.gameStarted) {
+        if(!this.isStarted) {
             throw new Error("Can't call a vote before the game has started.");
         }
         if(this.airlockVoteTarget != null) {
