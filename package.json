@@ -1,0 +1,21 @@
+{
+    "name": "CylonMafiaBot",
+    "version": "0.0.1",
+    "description": "IRC bot for administering a BSG-flavored version of the mafia party game.",
+    "homepage": "https://github.com/bbqduc/CylonMafiaBot",
+    "bugs": {"url": "https://github.com/bbqduc/CylonMafiaBot/issues" },
+    "license": "MIT",
+    "author": {"name": "Johannes Ylinen"},
+    "files": ["game.js", "bot.js", "player.js", "abilities", "winresolvers", "test", "roles"],
+    "dependencies": {
+        "irc" : "",
+        "irc-colors": "",
+        "ircdjs": "",
+        "lodash": "",
+        "mocha": "",
+        "should": ""
+    },
+    "scripts": {
+        "test": "mocha"
+    }
+}
