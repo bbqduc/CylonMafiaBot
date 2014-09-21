@@ -3,18 +3,12 @@
  */
 
 var _ = require("lodash");
-var FactionWinResolver = function(faction) {
-    this.faction = faction;
+var FactionWinResolver = function() {
     this.description = "You win when only members of your faction are left alive.";
 };
 
-FactionWinResolver.prototype.resolveWin = function(game) {
-    _.forEach(game.players, function(element, index) {
-        if(!element.isDead && element.role.faction != this.faction) {
-            return false;
-        }
-    }, this);
-    return true;
+FactionWinResolver.prototype.resolveWin = function(game, role) {
+    return game.getAlivePlayersFromFaction(role.FACTION).length == game.getAlivePlayers().length;
 };
 
 module.exports = FactionWinResolver;

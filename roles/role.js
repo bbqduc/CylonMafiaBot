@@ -27,5 +27,8 @@ Role.prototype.getInitialMessage = function() {
 Role.prototype.NAME = "";
 Role.prototype.FACTION = "";
 Role.prototype.winResolver = new FactionWinResolver(Role.prototype.FACTION);
+Role.prototype.resolveWin = function(game) {
+    return this.winResolver.resolveWin(game, this);
+};
 
 module.exports = Role;

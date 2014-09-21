@@ -8,21 +8,10 @@ var _ = require("lodash");
 
 var Game = require("../game");
 
-var DummyCommunicationInterface = function()
-{
-    this.sendPublicMessage = function(message) {
-    };
-
-    this.sendPrivateMessage = function(targetNick, message) {
-    };
-};
-
-
 describe("Game", function() {
 
     describe("Joining and leaving", function() {
         var game = new Game();
-        game.communicationInterface = new DummyCommunicationInterface();
         it("should be possible to join a game", function() {
             game.onPublicMessage("TestUser1", "!join");
             game.onPublicMessage("TestUser1", "!join");
@@ -46,7 +35,6 @@ describe("Game", function() {
     });
     describe("Determining roles", function() {
         var game = new Game();
-        game.communicationInterface = new DummyCommunicationInterface();
         var numPlayers = 5;
         var names = [];
         var i;

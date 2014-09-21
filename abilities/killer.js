@@ -9,7 +9,7 @@ var Killer = function(maxkilltimes)
         var message = this.message;
         _.forEach(abilityParameters.targets, function(target, key) {
             if(this.maxKillTimes != 0) {
-                target.dead = true;
+                target.player.dead = true;
                 target.killMessage = message == null ? '' : message;
                 target.killedBy = abilityParameters.actor;
                 target.sendMessage("You were attacked during the night!");

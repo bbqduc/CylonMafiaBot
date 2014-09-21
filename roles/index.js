@@ -26,6 +26,8 @@ _.forEach(files, function(element, index) {
         exports[name].prototype.constructor = exports[name];
         exports[name].prototype.NAME = jsonObj.name;
         exports[name].prototype.FACTION = jsonObj.faction;
-        exports[name].prototype.winResolver = new winresolvers[jsonObj.winresolver];
+        var resolverName = typeof(jsonObj.winresolver) === "string" ? jsonObj.winresolver : jsonObj.winresolver.name;
+        var resolverParams = typeof(jsonObj.winresolver) === "string" ? [] : jsonObj.winresolver.parameters;
+        winresolvers[resolverName].apply(exports[name].prototype.winResolver, resolverParams);
     }
 });

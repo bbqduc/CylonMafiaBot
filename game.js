@@ -7,8 +7,19 @@ require('irc-colors').global()
 var _ = require("lodash");
 var Player = require("./player");
 var roleClasses = require("./roles");
+
+var DummyCommunicationInterface = function()
+{
+    this.sendPublicMessage = function(message) {
+    };
+
+    this.sendPrivateMessage = function(targetNick, message) {
+    };
+};
+
 var Game = function()
 {
+    this.communicationInterface = new DummyCommunicationInterface();
     this.players = {};
     this.killedPlayers = {};
     this.killedDuringLastNight = [];
@@ -16,6 +27,21 @@ var Game = function()
     this.gameStarted = false;
 
     Game.prototype.startServing = function() {};
+
+    Game.prototype.getPlayersFromFaction = function(faction) {
+        return _.filter(this.players, function(player) {
+            return (player.role != null) && player.role.FACTION === faction;
+        });
+    };
+
+    Game.prototype.getAlivePlayersFromFaction = function(faction) {
+
+        return _.filter(this.getPlayersFromFaction(faction), {'dead': false});
+    };
+
+    Game.prototype.getAlivePlayers = function() {
+        return _.filter(this.players, {'dead': false});
+    };
 
     Game.prototype.addPlayer = function(nick, restString) {
         if(this.gameStarted) {
