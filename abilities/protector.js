@@ -9,6 +9,8 @@ var Protector = function()
     this.commandWord = "protect";
     this.abilityDescription = "Protect another player against death during the night. Usage: !" + this.commandWord + " targetNick";
     this.target = null;
+    this.enabledNight = true;
+    this.enabledDay = false;
     this.abilityCallback = function(game, abilityParameters) {
         var target = abilityParameters.targets[0];
         if(target.dead) {

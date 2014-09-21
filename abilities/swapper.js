@@ -10,6 +10,8 @@ var Swapper = function()
     this.target1 = null;
     this.target2 = null;
     this.swappedActors = [];
+    this.enabledNight = true;
+    this.enabledDay = false;
 
     this.swappingListener = function(game, abilityParameters) {
         if(_.contains(this.swappedActors, abilityParameters.actor)) { // to avoid endless swapping
@@ -44,7 +46,7 @@ var Swapper = function()
         var targets = [];
         targets[0] = game.getPlayerByNickOrThrow(split[0]);
         targets[1] = game.getPlayerByNickOrThrow(split[1]);
-        this.swappedActors = []; // TODO must register execution on upper level!
+        return targets;
     };
 };
 

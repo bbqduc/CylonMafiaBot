@@ -243,11 +243,11 @@ var Game = function()
     {
         var notBlocked = true;
         _.forEach(this.abilityActorListeners[abilityParameters.actor.nick], function(listener, key) {
-            notBlocked = notBlocked && listener(this, abilityParameters);
+            notBlocked = notBlocked && (listener(this, abilityParameters) !== false);
         });
         _.forEach(abilityParameters.targets, function(target, index) {
             _.forEach(this.abilityTargetListeners[target.nick], function (listener, key) {
-                notBlocked = notBlocked && listener(this, abilityParameters);
+                notBlocked = notBlocked && (listener(this, abilityParameters) !== false);
             });
         }, this);
         return notBlocked;
