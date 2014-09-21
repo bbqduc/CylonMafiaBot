@@ -22,13 +22,16 @@ var Game = function()
 {
     this.communicationInterface = new DummyCommunicationInterface();
     this.players = {};
-    this.killedPlayers = {};
+    this.killedPlayers = [];
     this.killedDuringLastNight = [];
     this.currentDay = 0;
     this.isNight = false;
     this.gameStarted = false;
     this.abilityActorListeners = {};
     this.abilityTargetListeners = {};
+    this.abilitiesUsed = [];
+
+    this.voteInProgress = false;
     this.airlockVoteTarget = null;
     this.yesVotes = 0;
     this.noVotes = 0;
@@ -174,33 +177,26 @@ var Game = function()
 
     Game.prototype.detectNewDeadPeople = function()
     {
-        this.mKilledDuringLastNight = [];
-        _.forOwn(this.mPlayers, function(player, nick)
-        {
-            if(player.mRole.mDead && !(_.contains(mKilledPlayers, nick)))
-            {
-                player.mKilledOnDay = mCurrentDay;
-                this.mKilledPlayers[nick] = player;
-                this.mKilledDuringLastNight.push(player);
+        _.forOwn(this.players, function(player, nick) {
+            if(player.dead && !(_.contains(this.killedPlayers, nick))) {
+                this.communicationInterface.sendPublicMessage(nick + " was brutally murdered during the night!");
+                if(player.killMessage != "")
+                    this.communicationInterface.sendPublicMessage("The killer left a message : " + player.killMessage);
             }
-        });
+        }, this);
     }
     Game.prototype.advanceToNextDay = function()
     {
         this.detectNewDeadPeople();
-        this.sendMessagesForDay(this.currentDay);
         this.currentDay++;
         this.isNight = false;
         this.communicationInterface.sendPublicMessage("=========== DAY " + this.currentDay + "===========");
+        this.triggerNewDayCallbacks();
     };
 
-    Game.prototype.sendMessagesForDay = function(day)
-    {
-        _.forEach(this.mKilledDuringLastNight, function(player, index)
-        {
-            this.communicationInterface.sendPublicMessage(player.mNick + " was brutally murdered during the night!");
-            if(player.killMessage != "")
-                this.communicationInterface.sendPublicMessage("The killer left a message : " + player.killMessage);
+    Game.prototype.triggerNewDayCallbacks = function() {
+        _.forEach(this.getAlivePlayers(), function(player, index) {
+            player.newDayCallback();
         });
     };
 
@@ -219,9 +215,6 @@ var Game = function()
     };
 
     Game.prototype.useAbility = function(ability, actor, targets) {
-        if(!this.isNight) { // TODO : this check doesn't really belong here
-            throw new Error("Cannot use this ability during the day.");
-        }
         this.abilitiesUsed.push({ability: ability, actor: actor, targets: targets});
     };
 
@@ -230,24 +223,27 @@ var Game = function()
         _.forEach(this.abilitiesUsed, function(abilityParameters) {
             var notBlocked = this.launchListeners(abilityParameters);
             if(notBlocked) {
-                abilityParameters.abilityCallback(this);
+                abilityParameters.ability.abilityCallback(this, abilityParameters);
             }
-        });
+        }, this);
         this.abilitiesUsed = [];
         this.abilityActorListeners = {};
         this.abilityTargetListeners = {};
+        this.advanceToNextDay();
     };
 
     Game.prototype.launchListeners = function(abilityParameters)
     {
+        var notBlocked = true;
         _.forEach(this.abilityActorListeners[abilityParameters.actor], function(listener, key) {
-            listener(abilityParameters);
+            notBlocked = notBlocked && listener(abilityParameters);
         });
         _.forEach(abilityParameters.targets, function(target, index) {
             _.forEach(this.abilityTargetListeners[target], function (listener, key) {
-                listener(abilityParameters);
+                notBlocked = notBlocked && listener(abilityParameters);
             });
-        });
+        }, this);
+        return notBlocked;
     }
 
     Game.prototype.addAbilityActorListener = function(target, listener) {
@@ -262,7 +258,7 @@ var Game = function()
         if(!this.gameStarted) {
             throw new Error("Can't vote before the game has started.");
         }
-        if(this.airlockVoteTarget == null) {
+        if(!this.voteInProgress) {
             throw new Error("No vote in progress.");
         }
         if(_.contains(this.votedPlayers, player.nick)) {
@@ -285,31 +281,58 @@ var Game = function()
 
     Game.prototype.resetVote = function() {
         this.airlockVoteTarget = null;
+        this.voteInProgress = false;
         this.yesVotes = 0;
         this.noVotes = 0;
         this.votedPlayers = [];
     };
+
     Game.prototype.resolveVote = function() {
         if(this.yesVotes > this.noVotes) {
-            this.communicationInterface.sendPublicMessage("Motion passes. " + this.airlockVoteTarget.nick.irc.bold() + " is thrown out of the airlock.");
-            this.airlockVoteTarget.dead = true;
+            var message = "Motion passes. ";
+            if(this.airlockVoteTarget == null) {
+                message += "The airlock gets no exercise today.";
+            } else {
+                message += this.airlockVoteTarget.nick.irc.bold() + " is thrown out of the airlock."
+                this.airlockVoteTarget.dead = true;
+                this.killedPlayers.push(this.airlockVoteTarget.nick);
+            }
+            this.communicationInterface.sendPublicMessage(message);
+            this.resetVote();
+            this.isNight = true;
         } else {
-            this.communicationInterface.sendPublicMessage("Motion fails. " + this.airlockVoteTarget.nick.irc.bold() + " stays alive.");
+            var message = "Motion fails. ";
+            if(this.airlockVoteTarget == null) {
+                message += "The people want justice!";
+            } else {
+                message += this.airlockVoteTarget.nick.irc.bold() + " stays alive.";
+            }
+            this.communicationInterface.sendPublicMessage(message);
+            this.resetVote();
         }
-        this.resetVote();
     };
 
     Game.prototype.callAirlockVote = function(actor, restString) {
+        if(this.isNight) {
+            throw new Error("Can't call a vote at night.");
+        }
         if(!this.gameStarted) {
             throw new Error("Can't call a vote before the game has started.");
         }
         if(this.airlockVoteTarget != null) {
             throw new Error("There is already an airlock vote in progress for " + this.airlockVoteTarget.nick);
         }
+        var player;
         restString = restString.trim();
-        var player = this.getAlivePlayerByNickOrThrow(restString);
+        if(restString === "") {
+            player = null; // call a vote to not airlock anyone
+            this.communicationInterface.sendPublicMessage(actor + " has called a vote to skip throwing anyone out of the airlock today.");
+        } else {
+            player = this.getAlivePlayerByNickOrThrow(restString);
+            this.communicationInterface.sendPublicMessage(actor + " has called a vote to throw " + restString.irc.bold() + " out of the airlock!");
+        }
         this.airlockVoteTarget = player;
-        this.communicationInterface.sendPublicMessage(actor + " has called a vote to throw " + restString.irc.bold() + " out of the airlock!");
+        this.voteInProgress = true;
     };
 
     this.commandHandlers = {

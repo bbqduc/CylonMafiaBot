@@ -7,16 +7,12 @@ var Player = function(nick, game) {
 };
 
 Player.prototype.sendMessage = function(message) {
-    game.sendPrivateMessage(this.nick, message);
-};
-
-Player.prototype.useAbility = function(ability, targets) {
-    game.useAbility(ability, this, targets);
+    this.game.communicationInterface.sendPrivateMessage(this.nick, message);
 };
 
 Player.prototype.receiveCommand = function(commandWord, restString) {
     if(this.commandHandlers[commandWord] == null) {
-        this.role.parseCommand(commandWord, restString);
+        this.role.parseCommand(commandWord, restString, this.game, this);
     } else {
         this.commandHandlers[commandWord](restString);
     }
@@ -25,6 +21,10 @@ Player.prototype.receiveCommand = function(commandWord, restString) {
 Player.prototype.callAirlockVote = function(restString) {
     this.game.callAirlockVote(this, restString);
 };
+
+Player.prototype.newDayCallback = function() {
+    this.role.newDayCallback();
+}
 
 Player.prototype.vote = function(restString) {
     restString = restString.trim();

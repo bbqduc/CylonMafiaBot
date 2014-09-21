@@ -12,6 +12,7 @@ var Role = function() {
     _.forEach(this.abilities, function (element, index) {
         this.commandWords.push(element.commandWord);
     }, this);
+    this.abilityUsed = false;
 };
 
 Role.prototype.getInitialMessage = function() {
@@ -30,12 +31,25 @@ Role.prototype.winResolver = new FactionWinResolver(Role.prototype.FACTION);
 Role.prototype.resolveWin = function(game) {
     return this.winResolver.resolveWin(game, this);
 };
-Role.prototype.parseCommand = function(commandWord, restString) {
+Role.prototype.parseCommand = function(commandWord, restString, game, actor) {
     var ability = _.find(this.abilities, {"commandWord" : commandWord});
     if(ability == null) {
-        throw "No such command: " + commandWord;
+        throw new Error("No such command: " + commandWord);
     }
-    ability.parseCommand(restString);
+    if(this.abilityUsed) {
+        throw new Error("Already used an ability tonight.");
+    }
+    if(game.isNight && !ability.enabledNight) {
+        throw new Error("Can't use that ability during the night.");
+    } else if(!game.isNight && !ability.enabledDay) {
+        throw new Error("Can't use that ability during the day.");
+    }
+    var targets = ability.parseCommand(game, restString);
+    game.useAbility(ability, actor, targets);
+    this.abilityUsed = true;
+};
+Role.prototype.newDayCallback = function() {
+    this.abilityUsed = false;
 };
 
 module.exports = Role;

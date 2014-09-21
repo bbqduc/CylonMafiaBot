@@ -71,6 +71,11 @@ describe("Game", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
             (function() { player.callAirlockVote("TestUser2")}).should.throw();
         });
+        it("Calling a vote should not be possible at night", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            game.isNight = true; // TODO : this is a pretty ham-fisted way to make it night
+            (function() { player.callAirlockVote("TestUser2")}).should.throw();
+        });
         it("Voting should not be possible until a vote has been called", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
             (function() { player.vote("yes")}).should.throw();
@@ -108,6 +113,7 @@ describe("Game", function() {
                 (function() { player.vote("no")}).should.not.throw();
             });
             (game.airlockVoteTarget == null).should.be.true;
+            game.voteInProgress.should.be.false;
             game.yesVotes.should.be.exactly(0);
             game.noVotes.should.be.exactly(0);
             game.votedPlayers.length.should.be.exactly(0);
@@ -131,6 +137,78 @@ describe("Game", function() {
             });
             game.getAlivePlayers().length.should.be.exactly(numPlayers);
             (function() { game.getAlivePlayerByNickOrThrow("TestUser2")}).should.not.throw();
+        });
+        it("a vote to skip the airlocking should result in no deaths", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            var numPlayers = game.getAlivePlayers().length;
+            (function() { player.callAirlockVote("")}).should.not.throw();
+            _.forEach(game.getAlivePlayers(), function(player, index) {
+                (function() { player.vote("yes")}).should.not.throw();
+            });
+            game.voteInProgress.should.be.false;
+            game.getAlivePlayers().length.should.be.exactly(numPlayers);
+        });
+        it("a passing vote should trigger nighttime", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            var numPlayers = game.getAlivePlayers().length;
+            (function() { player.callAirlockVote("")}).should.not.throw();
+            _.forEach(game.getAlivePlayers(), function(player, index) {
+                (function() { player.vote("yes")}).should.not.throw();
+            });
+            game.isNight.should.be.true;
+        });
+        it("a failing vote should not trigger nighttime", function() {
+            var player = game.getPlayerByNickOrThrow("TestUser1");
+            var numPlayers = game.getAlivePlayers().length;
+            (function() { player.callAirlockVote("")}).should.not.throw();
+            _.forEach(game.getAlivePlayers(), function(player, index) {
+                (function() { player.vote("no")}).should.not.throw();
+            });
+            game.isNight.should.be.false;
+        });
+    });
+    describe("Using abilities", function() {
+        beforeEach(function() {
+            game = new Game();
+            utils.addManyPlayers(game, 5, "TestUser");
+            game.startGame();
+        });
+        describe("Kill ability", function() {
+            var number2;
+            beforeEach(function() {
+                number2 = _.find(game.getAlivePlayers(), function(player) {
+                    return player.role.NAME === "Cylon Number 2";
+                });
+            });
+            it("should not be possible to use during the day", function () {
+                (function() {number2.receiveCommand("kill", "TestUser1") }).should.throw();
+            });
+            it("should be possible to use during the night", function () {
+                game.isNight = true;
+                (function() {number2.receiveCommand("kill", "TestUser1") }).should.not.throw();
+            });
+            it("should result in the target's death with no outside intervention", function () {
+                game.isNight = true;
+                var numPlayers = game.getAlivePlayers().length;
+                (function() {number2.receiveCommand("kill", "TestUser1") }).should.not.throw();
+                game.resolveAbilities();
+                game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
+                (function() {game.getAlivePlayerByNickOrThrow("TestUser1"); }).should.throw();
+            });
+            it("should not be possible to use it more than once per night", function () {
+                game.isNight = true;
+                var numPlayers = game.getAlivePlayers().length;
+                (function() {number2.receiveCommand("kill", "TestUser1") }).should.not.throw();
+                (function() {number2.receiveCommand("kill", "TestUser1") }).should.throw();
+            });
+            it("should be possible to use it again on the next night", function () {
+                game.isNight = true;
+                var numPlayers = game.getAlivePlayers().length;
+                (function() {number2.receiveCommand("kill", "TestUser1") }).should.not.throw();
+                game.resolveAbilities();
+                game.isNight = true;
+                (function() {number2.receiveCommand("kill", "TestUser2") }).should.not.throw();
+            });
         });
     });
 });

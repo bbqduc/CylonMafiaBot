@@ -1,10 +1,13 @@
 var utils = require("../utils");
+var _ = require("lodash");
 var Killer = function(maxkilltimes)
 {
     this.maxKillTimes = maxkilltimes == null ? -1 : maxkilltimes; // infinite if not specified
     this.commandWord = "kill";
     this.message = '';
     this.abilityDescription = "Kill another player during the night. ";
+    this.enabledNight = true;
+    this.enabledDay = false;
     if(this.maxKillTimes != -1) {
        this.abilityDescription += "You can use this ability " + this.maxKillTimes + " times during the game.";
     }
@@ -25,7 +28,7 @@ var Killer = function(maxkilltimes)
 
     this.parseCommand = function(game, restString) { // this needs to be called when the user attempts to use it ... so needs to ENQUEUE the execution!
         if(this.maxKillTimes === 0) {
-            throw "Maximum amount of kills already performed!";
+            throw new Error("Maximum amount of kills already performed!");
         }
         restString = restString.trim();
         var targets = [];
