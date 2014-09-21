@@ -20,7 +20,7 @@ var Blocker = function()
     };
     this.abilityCallback = function(game, abilityParameters) {
         this.target = abilityParameters.targets[0];
-        game.addAbilityActorListener(this.target, this.blockingListener);
+        game.addAbilityActorListener(this.target, this.blockingListener.bind(this));
     };
     this.parseCommand = function(game, restString) {
         var split = utils.getWhiteSpaceSeparatedParameters(restString, 1);

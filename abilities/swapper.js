@@ -3,6 +3,7 @@
  */
 
 var utils = require("../utils");
+var _ = require("lodash");
 var Swapper = function()
 {
     this.commandWord = "swap";
@@ -28,17 +29,17 @@ var Swapper = function()
             }
             if(originalTarget != abilityParameters.targets[key]) {
                 this.swappedActors.push(abilityParameters.actor);
-                abilityParameters.actor.sendMessage("Somehow you got lost and ended up using " + abilityParameters.ability.commandWord + " on " + abilityParameters.targets[key].player.nick + " instead of " + originalTarget); // TODO : more interesting messages! Like different stuff for bartender etc
+                abilityParameters.actor.sendMessage("Somehow you got lost and ended up using " + abilityParameters.ability.commandWord + " on " + abilityParameters.targets[key].nick + " instead of " + originalTarget.nick); // TODO : more interesting messages! Like different stuff for bartender etc
             }
-        });
+        }, this);
         return true;
     };
 
     this.abilityCallback = function(game, abilityParameters) {
         this.target1 = abilityParameters.targets[0];
         this.target2 = abilityParameters.targets[1];
-        game.addAbilityTargetListener(abilityParameters.targets[0], this.swappingListener);
-        game.addAbilityTargetListener(abilityParameters.targets[1], this.swappingListener);
+        game.addAbilityTargetListener(abilityParameters.targets[0], this.swappingListener.bind(this));
+        game.addAbilityTargetListener(abilityParameters.targets[1], this.swappingListener.bind(this));
     }
 
     this.parseCommand = function(game, restString) {

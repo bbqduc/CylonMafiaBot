@@ -191,30 +191,30 @@ describe("Game", function() {
                 number2 = game.getPlayerByNickOrThrow("number2");
             });
             it("should not be possible to use during the day", function () {
-                (function() {number2.receiveCommand("kill", "TestUser1") }).should.throw();
+                (function() {number2.onCommand("kill", "TestUser1") }).should.throw();
             });
             it("should be possible to use during the night", function () {
                 game.isNight = true;
-                (function() {number2.receiveCommand("kill", "tomzarek") }).should.not.throw();
+                (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
             });
             it("should not be possible to use it more than once per night", function () {
                 game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function() {number2.receiveCommand("kill", "tomzarek") }).should.not.throw();
-                (function() {number2.receiveCommand("kill", "coloneltigh") }).should.throw();
+                (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
+                (function() {number2.onCommand("kill", "coloneltigh") }).should.throw();
             });
             it("should be possible to use it again on the next night", function () {
                 game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function() {number2.receiveCommand("kill", "tomzarek") }).should.not.throw();
+                (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
                 game.resolveAbilities();
                 game.isNight = true;
-                (function() {number2.receiveCommand("kill", "coloneltigh") }).should.not.throw();
+                (function() {number2.onCommand("kill", "coloneltigh") }).should.not.throw();
             });
             it("should result in the target's death with no outside intervention", function () {
                 game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function() {number2.receiveCommand("kill", "tomzarek") }).should.not.throw();
+                (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
                 game.resolveAbilities();
                 game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
                 (function() {game.getAlivePlayerByNickOrThrow("tomzarek"); }).should.throw();
@@ -226,32 +226,32 @@ describe("Game", function() {
                 blocker = game.getPlayerByNickOrThrow("cylonblocker");
             });
             it("should not be possible to use during the day", function () {
-                (function() {blocker.receiveCommand("block", "number2") }).should.throw();
+                (function() {blocker.onCommand("block", "number2") }).should.throw();
             });
             it("should be possible to use during the night", function () {
                 game.isNight = true;
-                (function() {blocker.receiveCommand("block", "number2") }).should.not.throw();
+                (function() {blocker.onCommand("block", "number2") }).should.not.throw();
             });
             it("should not be possible to use it more than once per night", function () {
                 game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function() {blocker.receiveCommand("block", "number2") }).should.not.throw();
-                (function() {blocker.receiveCommand("block", "number2") }).should.throw();
+                (function() {blocker.onCommand("block", "number2") }).should.not.throw();
+                (function() {blocker.onCommand("block", "number2") }).should.throw();
             });
             it("should be possible to use it again on the next night", function () {
                 game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function() {blocker.receiveCommand("block", "number2") }).should.not.throw();
+                (function() {blocker.onCommand("block", "number2") }).should.not.throw();
                 game.resolveAbilities();
                 game.isNight = true;
-                (function() {blocker.receiveCommand("block", "coloneltigh") }).should.not.throw();
+                (function() {blocker.onCommand("block", "coloneltigh") }).should.not.throw();
             });
-            it.skip("should block a kill command", function () {
+            it("should block a kill command", function () {
                 var number2 = game.getPlayerByNickOrThrow("number2");
                 var numPlayers = game.getAlivePlayers().length;
                 game.isNight = true;
-                (function() {number2.receiveCommand("kill", "tomzarek") }).should.not.throw();
-                (function() {blocker.receiveCommand("block", "number2") }).should.not.throw();
+                (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
+                (function() {blocker.onCommand("block", "number2") }).should.not.throw();
                 game.resolveAbilities();
                 game.getAlivePlayers().length.should.be.exactly(numPlayers);
                 (function() {game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
@@ -264,40 +264,40 @@ describe("Game", function() {
             });
             it("should not be possible to use during the day", function () {
                 (function () {
-                    swapper.receiveCommand("swap", "number2 tomzarek")
+                    swapper.onCommand("swap", "number2 tomzarek")
                 }).should.throw();
             });
             it("should be possible to use during the night", function () {
                 game.isNight = true;
                 (function () {
-                    swapper.receiveCommand("swap", "number2 tomzarek")
+                    swapper.onCommand("swap", "number2 tomzarek")
                 }).should.not.throw();
             });
             it("should not be possible to use it more than once per night", function () {
                 game.isNight = true;
                 (function () {
-                    swapper.receiveCommand("swap", "number2 tomzarek")
+                    swapper.onCommand("swap", "number2 tomzarek")
                 }).should.not.throw();
                 (function () {
-                    swapper.receiveCommand("swap", "number2 tomzarek")
+                    swapper.onCommand("swap", "number2 tomzarek")
                 }).should.throw();
             });
             it("should be possible to use it again on the next night", function () {
                 game.isNight = true;
                 (function () {
-                    swapper.receiveCommand("swap", "number2 tomzarek")
+                    swapper.onCommand("swap", "number2 tomzarek")
                 }).should.not.throw();
                 game.resolveAbilities();
                 game.isNight = true;
                 (function () {
-                    swapper.receiveCommand("swap", "coloneltigh tomzarek")
+                    swapper.onCommand("swap", "coloneltigh tomzarek")
                 }).should.not.throw();
             });
-            it.skip("should swap a kill order", function () {
+            it("should swap a kill order", function () {
                 game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
                 (function () {
-                    swapper.receiveCommand("swap", "number2 tomzarek")
+                    swapper.onCommand("swap", "number2 tomzarek")
                 }).should.not.throw();
                 (function () {
                     game.onPrivateMessage("number2", "!kill tomzarek");

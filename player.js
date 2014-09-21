@@ -10,7 +10,7 @@ Player.prototype.sendMessage = function(message) {
     this.game.communicationInterface.sendPrivateMessage(this.nick, message);
 };
 
-Player.prototype.receiveCommand = function(commandWord, restString) {
+Player.prototype.onCommand = function(commandWord, restString) {
     if(this.commandHandlers[commandWord] == null) {
         this.role.parseCommand(commandWord, restString, this.game, this);
     } else {

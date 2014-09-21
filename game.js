@@ -98,34 +98,40 @@ var Game = function()
     Game.prototype.onPublicMessage = function(sender, message) {
         message = message.trim();
         if(message.length > 1 && message[0] == '!') {
-           this.handlePublicCommand(this.parseCommand(sender, message.substr(1)));
+            var args = this.parseCommand(message.substr(1));
+            this.handlePublicCommand(sender, args.commandWord, args.restString);
         }
     };
 
     Game.prototype.onPrivateMessage = function(sender, message) {
         message = message.trim();
         if(message.length > 1 && message[0] == '!') {
-            this.handlePrivateCommand(this.parseCommand(sender, message.substr(1)));
+            var args = this.parseCommand(message.substr(1));
+            this.handlePrivateCommand(sender, args.commandWord, args.restString);
         }
     };
 
-    Game.prototype.parseCommand = function(sender, message) {
+    Game.prototype.parseCommand = function(message) {
         var splitPoint = message.search(/\s/); // split on first whitespace
         var command = splitPoint === -1 ? message : message.substr(0, splitPoint);
         var restString = splitPoint === -1 ? "" : message.substr(splitPoint).trim();
-        return {sender: sender, commandWord: command, restString: restString};
+        return {commandWord: command, restString: restString};
     };
 
 
-    Game.prototype.handlePublicCommand = function(command) {
-        if(this.commandHandlers[command["commandWord"]] != null) {
-           this.commandHandlers[command["commandWord"]](command["sender"], command["restString"]);
+    Game.prototype.handlePublicCommand = function(sender, commandWord, restString) {
+        if(this.commandHandlers[commandWord] != null) {
+            this.commandHandlers[commandWord](sender, restString);
+        } else if(this.players[sender] != null && !this.players[sender].dead) {
+            this.players[sender].onCommand(commandWord, restString);
         }
     };
 
-    Game.prototype.handlePrivateCommand = function(command) {
-        if(this.commandHandlers[command["commandWord"]] != null) {
-            this.commandHandlers[command["commandWord"]](command["sender"], command["restString"]);
+    Game.prototype.handlePrivateCommand = function(sender, commandWord, restString) {
+        if(this.commandHandlers[commandWord] != null) {
+            this.commandHandlers[commandWord](sender, restString);
+        } else if(this.players[sender] != null && !this.players[sender].dead){
+            this.players[sender].onCommand(commandWord, restString);
         }
     };
 
