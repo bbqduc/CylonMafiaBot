@@ -53,6 +53,7 @@ Role.prototype.parseCommand = function(commandWord, restString, game, actor) {
     var targets = ability.parseCommand(game, restString);
     game.useAbility(ability, actor, targets);
     this.abilityUsed = true;
+    game.nextDayIfAllPlayersDone();
 };
 Role.prototype.newDayCallback = function() {
     this.abilityUsed = this.commandWords.length === 0;

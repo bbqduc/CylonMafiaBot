@@ -402,7 +402,7 @@ var Game = function()
 	 };
 
 	 Game.prototype.lastCylonCheck = function() {
-		 var cylons = this.getPlayersFromFaction("Cylon");
+		 var cylons = this.getAlivePlayersFromFaction("Cylon");
 		 if(cylons.length === 1 && cylons[0].role.NAME != "number2") {
 				cylons[0].role = new roleClasses.number2();
 				this.communicationInterface.sendPrivateMessage(cylons[0].nick, "You're the last cylon alive, and you have been granted the power to kill.");
