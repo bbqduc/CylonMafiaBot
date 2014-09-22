@@ -86,6 +86,6 @@ if(argv.test) {
 }
 
 var game = new Game();
-var bot = new CylonBot(argv._[0], "CylonMafiaBot", "#tapiiri-mafia", "bduc", game);
+var bot = new CylonBot(argv._[0], "CylonMafiaBot", "#tapiiri-cylon", "bduc", game);
 
 module.exports = CylonBot;
