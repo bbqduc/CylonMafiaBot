@@ -8,7 +8,7 @@ var _ = require("lodash");
 var argv = require("optimist").argv;
 
 var CylonBot = function(server, botnick, channel, maintainernick, game, callback) {
-    this.client = new irc.Client(server, botnick, {channels: [channel]});
+    this.client = new irc.Client(server, botnick, {channels: [channel], floodProtection: false});
     this.channel = channel;
     this.connected = false;
     this.game = game;

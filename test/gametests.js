@@ -73,8 +73,11 @@ describe("Game", function() {
         var game;
         beforeEach(function() {
             game = new Game();
-            utils.addManyPlayers(game, 5, "TestUser");
+            utils.addManyPlayers(game, 6, "TestUser");
             game.startGame();
+            _.forEach(game.getAlivePlayers(), function(player, key) {
+                player.onCommand("pass", "");
+            });
         });
         it("Calling a vote should not be possible when the game hasn't started", function() {
             game = new Game();
@@ -121,9 +124,9 @@ describe("Game", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-					 if(index < _.size(game.getAlivePlayers()) / 2) {
-						 (function() { player.vote("no")}).should.not.throw();
-					 }
+                if(index < _.size(game.getAlivePlayers()) / 2) {
+                    (function() { player.vote("no")}).should.not.throw();
+                }
             });
             (game.airlockVoteTarget == null).should.be.true;
             game.voteInProgress.should.be.false;
@@ -136,9 +139,9 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-					 if(index < _.size(game.getAlivePlayers()) / 2) {
-						 (function() { player.vote("yes")}).should.not.throw();
-					 }
+                if(index <= _.size(game.getAlivePlayers()) / 2) {
+                    (function() { player.vote("yes")}).should.not.throw();
+                }
             });
             game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
             (function() { game.getAlivePlayerByNickOrThrow("TestUser2")}).should.throw();
@@ -148,9 +151,9 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-					 if(index < _.size(game.getAlivePlayers()) / 2) {
-						(function() { player.vote("no")}).should.not.throw();
-					 }
+                if(index < _.size(game.getAlivePlayers()) / 2) {
+                    (function() { player.vote("no")}).should.not.throw();
+                }
             });
             game.getAlivePlayers().length.should.be.exactly(numPlayers);
             (function() { game.getAlivePlayerByNickOrThrow("TestUser2")}).should.not.throw();
@@ -160,9 +163,9 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-					 if(index < _.size(game.getAlivePlayers()) / 2) {
-						 (function() { player.vote("yes")}).should.not.throw();
-					 }
+                if(index <= _.size(game.getAlivePlayers()) / 2) {
+                    (function() { player.vote("yes")}).should.not.throw();
+                }
             });
             game.voteInProgress.should.be.false;
             game.getAlivePlayers().length.should.be.exactly(numPlayers);
@@ -172,9 +175,9 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-					 if(index < _.size(game.getAlivePlayers()) / 2) {
-						 (function() { player.vote("yes")}).should.not.throw();
-					 }
+                if(index <= _.size(game.getAlivePlayers()) / 2) {
+                    (function() { player.vote("yes")}).should.not.throw();
+                }
             });
             game.isNight.should.be.true;
         });
@@ -183,9 +186,9 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-					 if(index < _.size(game.getAlivePlayers()) / 2) {
-						 (function() { player.vote("no")}).should.not.throw();
-					 }
+                if(index < _.size(game.getAlivePlayers()) / 2) {
+                    (function() { player.vote("no")}).should.not.throw();
+                }
             });
             game.isNight.should.be.false;
         });
@@ -246,6 +249,9 @@ describe("Game", function() {
             var blocker;
             beforeEach(function() {
                 blocker = game.getPlayerByNickOrThrow("cylonblocker");
+                _.forEach(game.getAlivePlayers(), function(player, key) {
+                    player.onCommand("pass", "");
+                });
             });
             it("should not be possible to use during the day", function () {
                 (function() {blocker.onCommand("block", "number2") }).should.throw();
@@ -293,6 +299,9 @@ describe("Game", function() {
             var swapper;
             beforeEach(function () {
                 swapper = game.getPlayerByNickOrThrow("coloneltigh");
+                _.forEach(game.getAlivePlayers(), function(player, key) {
+                    player.onCommand("pass", "");
+                });
             });
             it("should not be possible to use during the day", function () {
                 (function () {
@@ -344,6 +353,9 @@ describe("Game", function() {
             var protector;
             beforeEach(function () {
                 protector = game.getPlayerByNickOrThrow("doctor");
+                _.forEach(game.getAlivePlayers(), function(player, key) {
+                    player.onCommand("pass", "");
+                });
             });
             it("should not be possible to use during the day", function () {
                 (function () {
@@ -392,16 +404,14 @@ describe("Game", function() {
         });
         describe("Night cycle", function() {
             it("it should become day when all players have used their abilities/passed", function () {
-                game.isNight.should.be.false;
-                game.isNight = true;
+                game.isNight.should.be.true;
                 _.forEach(game.getAlivePlayers(), function(player, key) {
                     (function() {player.onCommand("pass", "");}).should.not.throw();
                 });
                 game.isNight.should.be.false;
             });
             it("abilities should be resolved after cycle", function () {
-                game.isNight.should.be.false;
-                game.isNight = true;
+                game.isNight.should.be.true;
                 var numPlayers = game.getAlivePlayers().length;
                 (function() {game.getPlayerByNickOrThrow("number2").onCommand("kill", "tomzarek") }).should.not.throw();
                 _.forEach(game.getAlivePlayers(), function(player, key) {
@@ -431,6 +441,9 @@ describe("Game", function() {
                     game.getPlayerByNickOrThrow(name).role = new roleClasses[name];
                 }
             });
+            _.forEach(game.getAlivePlayers(), function(player, key) {
+                player.onCommand("pass", "");
+            });
         });
         it("it should end in Cylon victory when humans are dead", function () {
             while(game.getAlivePlayersFromFaction("Human").length > 0) {
@@ -439,9 +452,9 @@ describe("Game", function() {
                 var n2 = game.getPlayerByNickOrThrow("number2");
                 n2.callAirlockVote("");
                 _.forEach(game.getAlivePlayers(), function (player, key) {
-						 if(game.isNight){
-							 return false;
-						 }
+                    if(game.isNight){
+                        return false;
+                    }
                     (function () {
                         player.vote("yes");
                     }).should.not.throw();

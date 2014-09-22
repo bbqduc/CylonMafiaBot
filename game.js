@@ -237,8 +237,11 @@ var Game = function()
             roles[i].player = player;
             player.role = roles[i++];
             player.originalRole = player.role;
-            this.communicationInterface.sendPrivateMessage(player.nick, player.role.getInitialMessage(this));
         }, this);
+
+        _.forOwn(this.players, function(player) {
+            this.communicationInterface.sendPrivateMessage(player.nick, player.role.getInitialMessage(this));
+        }. this);
     };
 
     Game.prototype.startGame = function()
@@ -252,7 +255,7 @@ var Game = function()
         this.isStarted = true;
         this.communicationInterface.sendPublicMessage("Game starting!");
         this.determineRoles();
-        this.advanceToNextDay();
+        this.advanceToNight();
     };
 
     Game.prototype.detectNewDeadPeople = function()
@@ -381,7 +384,7 @@ var Game = function()
         }
         else { throw new Error("Vote " + votedYes + " not recognized."); }
         this.votedPlayers.push(player.nick);
-        if(this.votedPlayers.length == _.size(this.getAlivePlayers())|| (Math.max(this.yesVotes, this.noVotes) > (_.size(this.getAlivePlayers())/ 2))) {
+        if(this.votedPlayers.length == _.size(this.getAlivePlayers()) || this.yesVotes > (_.size(this.getAlivePlayers()) / 2) || this.noVotes >= (_.size(this.getAlivePlayers()) / 2)) {
             this.resolveVote();
         }
     };
