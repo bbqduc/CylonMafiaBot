@@ -13,6 +13,7 @@
         "ircdjs": "",
         "lodash": "",
         "mocha": "",
+        "optimist": "",
         "should": ""
     },
     "scripts": {
