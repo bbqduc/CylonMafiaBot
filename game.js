@@ -62,6 +62,12 @@ var Game = function()
 
     Game.prototype.startServing = function() {};
 
+    Game.prototype.forceEndNight = function(sender) {
+        if(sender === "bduc" && this.isNight) {
+            this.communicationInterface.sendPublicMessage("Forcing end of night.");
+            this.resolveAbilities();
+        }
+    };
 
     Game.prototype.abortGame = function(sender) {
         if(sender === "bduc") {
@@ -479,6 +485,7 @@ Game.prototype.getCommandsString = function(sender) {
         "leave": {callBack: Game.prototype.removePlayer.bind(this), description: "Leave a game that hasn't yet started."},
         "players": {callBack: Game.prototype.printPlayers.bind(this), description: "Get a list of alive players."},
         "commands": {callBack: Game.prototype.getCommandsString.bind(this), description: "Get a list of available commands."},
+        "endnight": {callBack: Game.prototype.forceEndNight.bind(this), description: "Force end of night. (only works if you're the admin)"},
         "abort": {callBack: Game.prototype.abortGame.bind(this), description: "Abort the current game. (only works if you're the admin)"}
     };
 
