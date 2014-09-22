@@ -31,8 +31,8 @@ var Game = function()
         this.abilityActorListeners = {};
         this.abilityTargetListeners = {};
         this.abilitiesUsed = [];
-        this.voteTargetsResolved = [];
 
+        this.voteTargetsResolved = [];
         this.voteInProgress = false;
         this.airlockVoteTarget = null;
         this.yesVotes = 0;
@@ -47,6 +47,7 @@ var Game = function()
         "blocker",
         "swapper",
         "killer",
+        "detective",
         "protector"
     ];
 
@@ -87,6 +88,12 @@ var Game = function()
     Game.prototype.getPlayersFromFaction = function(faction) {
         return _.filter(this.players, function(player) {
             return (player.role != null) && player.role.FACTION === faction;
+        });
+    };
+
+    Game.prototype.getTotalVotingPower = function() {
+        return _(this.getAlivePlayers()).reduce(function(sum, player) {
+            return sum + player.role.votingPower;
         });
     };
 
@@ -376,15 +383,15 @@ var Game = function()
         }
         if(showYesVote === true) {
             this.communicationInterface.sendPublicMessage(player.nick + " voted " + "YES".irc.bold.green());
-            this.yesVotes += 1;//yesEffect;
+            this.yesVotes += yesEffect;
         }
         else if(showYesVote === false) {
             this.communicationInterface.sendPublicMessage(player.nick + " voted " + "NO".irc.bold.red());
-            this.noVotes += 1;//noEffect;
+            this.noVotes += noEffect;
         }
         else { throw new Error("Vote " + votedYes + " not recognized."); }
         this.votedPlayers.push(player.nick);
-        if(this.votedPlayers.length == _.size(this.getAlivePlayers()) || this.yesVotes > (_.size(this.getAlivePlayers()) / 2) || this.noVotes >= (_.size(this.getAlivePlayers()) / 2)) {
+        if(this.votedPlayers.length == _.size(this.getAlivePlayers()) || this.yesVotes > (this.getTotalVotingPower() / 2) || this.noVotes >= (this.getTotalVotingPower() / 2)) {
             this.resolveVote();
         }
     };

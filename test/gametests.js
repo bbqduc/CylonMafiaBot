@@ -108,24 +108,26 @@ describe("Game", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             (function() { player.vote("yes")}).should.not.throw();
-            game.yesVotes.should.be.exactly(1);
+            game.yesVotes.should.be.exactly(player.role.votingPower);
             (function() { player.vote("yes")}).should.throw();
-            game.yesVotes.should.be.exactly(1);
+            game.yesVotes.should.be.exactly(player.role.votingPower);
         });
         it("it should not be possible to change your vote", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             (function() { player.vote("yes")}).should.not.throw();
-            game.yesVotes.should.be.exactly(1);
+            game.yesVotes.should.be.exactly(player.role.votingPower);
             (function() { player.vote("no")}).should.throw();
-            game.yesVotes.should.be.exactly(1);
+            game.yesVotes.should.be.exactly(player.role.votingPower);
         });
         it("voting should finish when a majority has been reached", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                if(index < _.size(game.getAlivePlayers()) / 2) {
-                    (function() { player.vote("no")}).should.not.throw();
+                var noVotes = game.noVotes;
+                (function() { player.vote("no")}).should.not.throw();
+                if(player.role.votingPower + noVotes >= game.getTotalVotingPower() / 2) {
+                    return false;
                 }
             });
             (game.airlockVoteTarget == null).should.be.true;
@@ -139,7 +141,7 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                if(index <= _.size(game.getAlivePlayers()) / 2) {
+                if(game.voteInProgress) {
                     (function() { player.vote("yes")}).should.not.throw();
                 }
             });
@@ -151,7 +153,7 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                if(index < _.size(game.getAlivePlayers()) / 2) {
+                if(game.voteInProgress) {
                     (function() { player.vote("no")}).should.not.throw();
                 }
             });
@@ -163,7 +165,7 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                if(index <= _.size(game.getAlivePlayers()) / 2) {
+                if(game.voteInProgress) {
                     (function() { player.vote("yes")}).should.not.throw();
                 }
             });
@@ -175,7 +177,7 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                if(index <= _.size(game.getAlivePlayers()) / 2) {
+                if(game.voteInProgress) {
                     (function() { player.vote("yes")}).should.not.throw();
                 }
             });
@@ -186,7 +188,7 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                if(index < _.size(game.getAlivePlayers()) / 2) {
+                if(game.voteInProgress) {
                     (function() { player.vote("no")}).should.not.throw();
                 }
             });
@@ -347,6 +349,20 @@ describe("Game", function() {
                 game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
                 (function () { game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
                 (function () { game.getAlivePlayerByNickOrThrow("number2");}).should.throw();
+            });
+        });
+        describe("Supervoter ability", function() {
+            it("should make your votes count as double", function () {
+                _.forEach(game.getAlivePlayers(), function(player, key) {
+                    player.onCommand("pass", "");
+                });
+                var roslin = game.getPlayerByNickOrThrow("roslin");
+                (function() { roslin.onCommand("airlock", "roslin"); }).should.not.throw();
+                game.yesVotes.should.be.exactly(0);
+                game.noVotes.should.be.exactly(0);
+                (function() { roslin.onCommand("vote", "yes"); }).should.not.throw();
+                game.yesVotes.should.be.exactly(2);
+                game.noVotes.should.be.exactly(0);
             });
         });
         describe("Protect ability", function() {

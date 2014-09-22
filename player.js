@@ -68,7 +68,8 @@ Player.prototype.vote = function(restString) {
     if(votedYes === null) {
        throw new Error("Couldn't parse a yes/no vote from " + restString);
     }
-    this.game.registerVote(this, votedYes);
+    var votes = this.role.vote(votedYes);
+    this.game.registerVote(this, votedYes, votes.yesEffect, votes.noEffect);
 };
 
 module.exports = Player;

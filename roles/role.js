@@ -11,10 +11,12 @@ var Role = function() {
     this.commandWords = [];
 	 this.votingPower = 1;
     _.forEach(this.abilities, function (element, index) {
-        this.commandWords.push(element.commandWord);
-		  if(element.votingPower) {
-			  this.votingPower += element.votingPower;
-		  }
+        if(element.commandWord != null) {
+            this.commandWords.push(element.commandWord);
+        }
+        if(element.votingPower) {
+            this.votingPower += element.votingPower;
+        }
     }, this);
     this.abilityUsed = false;
 };
@@ -25,7 +27,11 @@ Role.prototype.getInitialMessage = function(game) {
 
     ret += "\nHere is a list of your abilities:\n";
     _.forEach(this.abilities, function (element, index) {
-        ret += element.commandWord + ": " + element.abilityDescription + "\n";
+        if(element.commandWord != null) {
+            ret += element.commandWord + ": " + element.abilityDescription + "\n";
+        } else {
+            ret += "Passive: " + element.abilityDescription + "\n";
+        }
     });
 
     return ret;
@@ -55,8 +61,28 @@ Role.prototype.parseCommand = function(commandWord, restString, game, actor) {
     this.abilityUsed = true;
     game.nextDayIfAllPlayersDone();
 };
+
 Role.prototype.newDayCallback = function() {
     this.abilityUsed = this.commandWords.length === 0;
+};
+
+Role.prototype.vote = function(showYesVote) {
+    var ret = {yesEffect: 0, noEffect: 0};
+    var voteTouched = false;
+    _.forEach(this.abilities, function (ability, index) {
+        if(typeof(ability.vote) === "function") {
+            ability.vote(showYesVote, ret);
+            voteTouched = true;
+        }
+    });
+    if(voteTouched === false) {
+        if(showYesVote === true) {
+            ret.yesEffect = this.votingPower;
+        } else if(showYesVote === false) {
+            ret.noEffect = this.votingPower;
+        }
+    }
+    return ret;
 };
 
 module.exports = Role;
