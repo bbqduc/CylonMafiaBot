@@ -31,7 +31,7 @@ var Game = function()
         this.abilityActorListeners = {};
         this.abilityTargetListeners = {};
         this.abilitiesUsed = [];
-		  this.voteTargetsResolved = [];
+        this.voteTargetsResolved = [];
 
         this.voteInProgress = false;
         this.airlockVoteTarget = null;
@@ -63,12 +63,18 @@ var Game = function()
     Game.prototype.startServing = function() {};
 
 
+    Game.prototype.abortGame = function(sender) {
+        if(sender === "bduc") {
+            this.communicationInterface.sendPublicMessage("Resetting.");
+            this.reset();
+        }
+    };
     Game.prototype.printPlayers = function(sender) {
 		 var nicks = _.pluck(this.getAlivePlayers(), "nick");
 		 if(nicks.length == 0) {
-			 this.communicationInterface.sendPrivateMessage("No players.");
+			 this.communicationInterface.sendPrivateMessage(sender, "No players.");
 		 } else {
-			 this.communicationInterface.sendPrivateMessage("Alive players: " + nicks.join(", "));
+			 this.communicationInterface.sendPrivateMessage(sender, "Alive players: " + nicks.join(", "));
 		 }
 	 };
 
@@ -472,7 +478,8 @@ Game.prototype.getCommandsString = function(sender) {
         "start": {callBack: Game.prototype.startGame.bind(this), description: "Start a game."},
         "leave": {callBack: Game.prototype.removePlayer.bind(this), description: "Leave a game that hasn't yet started."},
         "players": {callBack: Game.prototype.printPlayers.bind(this), description: "Get a list of alive players."},
-        "commands": {callBack: Game.prototype.getCommandsString.bind(this), description: "Get a list of available commands."}
+        "commands": {callBack: Game.prototype.getCommandsString.bind(this), description: "Get a list of available commands."},
+        "abort": {callBack: Game.prototype.abortGame.bind(this), description: "Abort the current game. (only works if you're the admin)"}
     };
 
 };
