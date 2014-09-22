@@ -1,5 +1,5 @@
 {
-    "abilities": ["killer"],
+    "abilities": [ ["killer", {"maxKillsPerGame" : "1"}] ],
     "name": "Tom Zarek",
     "faction": "Human",
     "winresolver": "factionwinresolver"

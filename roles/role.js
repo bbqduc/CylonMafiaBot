@@ -9,8 +9,12 @@ var Role = function() {
         this.abilities = [];
     }
     this.commandWords = [];
+	 this.votingPower = 1;
     _.forEach(this.abilities, function (element, index) {
         this.commandWords.push(element.commandWord);
+		  if(element.votingPower) {
+			  this.votingPower += element.votingPower;
+		  }
     }, this);
     this.abilityUsed = false;
 };
@@ -35,7 +39,8 @@ Role.prototype.resolveWin = function(game) {
 Role.prototype.parseCommand = function(commandWord, restString, game, actor) {
     var ability = _.find(this.abilities, {"commandWord" : commandWord});
     if(ability == null) {
-        throw new Error("No such command: " + commandWord);
+        //throw new Error("No such command: " + commandWord); 
+		  return false;
     }
     if(this.abilityUsed) {
         throw new Error("Already used an ability tonight.");

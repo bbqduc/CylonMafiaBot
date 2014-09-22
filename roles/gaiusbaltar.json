@@ -1,0 +1,6 @@
+{
+    "abilities": ["detective"],
+    "name": "Gaius Baltar",
+    "faction": "Human",
+    "winresolver": "factionwinresolver"
+}

@@ -1,3 +1,4 @@
+var _ = require("lodash");
 var Player = function(nick, game) {
     this.nick = nick;
     this.dead = false;
@@ -6,10 +7,21 @@ var Player = function(nick, game) {
     this.killMessage = null;
 
     this.commandHandlers = {
-        "vote": Player.prototype.vote.bind(this),
-        "pass": Player.prototype.passTurn.bind(this),
-        "airlock": Player.prototype.callAirlockVote.bind(this)
+        "vote": {callBack: Player.prototype.vote.bind(this), description: "Take part in an ongoing vote. Usage: !vote yes|no|y|n"},
+        "pass": {callBack: Player.prototype.passTurn.bind(this), description: "Skip using an ability during the night."},
+        "airlock": {callBack: Player.prototype.callAirlockVote.bind(this), description: "Call a vote to throw someone out of the airlock. Usage: !airlock [targetNick]. Just !airlock will call a vote to skip airlocking for today."}
     };
+};
+
+Player.prototype.getCommandsString = function() {
+	var ret = "";
+	_.forOwn(this.commandHandlers, function(value, name) {
+		ret += "!" + name + " : " + value.description + "\n";
+	});
+	if(this.role != null) {
+		ret += this.role.getInitialMessage();
+	}
+	return ret;
 };
 
 Player.prototype.sendMessage = function(message) {
@@ -18,9 +30,14 @@ Player.prototype.sendMessage = function(message) {
 
 Player.prototype.onCommand = function(commandWord, restString) {
     if(this.commandHandlers[commandWord] == null) {
-        this.role.parseCommand(commandWord, restString, this.game, this);
+        if(this.role != null && this.role.parseCommand(commandWord, restString, this.game, this) !== false) {
+		  this.sendMessage("Command " + commandWord + " registered.");
+		  }
     } else {
-        this.commandHandlers[commandWord](restString);
+        this.commandHandlers[commandWord].callBack(restString);
+		  if(commandWord === "pass") {
+			  this.sendMessage("Command " + commandWord + " registered.");
+		  }
     }
 };
 

@@ -117,11 +117,13 @@ describe("Game", function() {
             (function() { player.vote("no")}).should.throw();
             game.yesVotes.should.be.exactly(1);
         });
-        it("voting should finish when all players have voted", function() {
+        it("voting should finish when a majority has been reached", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                (function() { player.vote("no")}).should.not.throw();
+					 if(index < _.size(game.getAlivePlayers()) / 2) {
+						 (function() { player.vote("no")}).should.not.throw();
+					 }
             });
             (game.airlockVoteTarget == null).should.be.true;
             game.voteInProgress.should.be.false;
@@ -134,7 +136,9 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                (function() { player.vote("yes")}).should.not.throw();
+					 if(index < _.size(game.getAlivePlayers()) / 2) {
+						 (function() { player.vote("yes")}).should.not.throw();
+					 }
             });
             game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
             (function() { game.getAlivePlayerByNickOrThrow("TestUser2")}).should.throw();
@@ -144,7 +148,9 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                (function() { player.vote("no")}).should.not.throw();
+					 if(index < _.size(game.getAlivePlayers()) / 2) {
+						(function() { player.vote("no")}).should.not.throw();
+					 }
             });
             game.getAlivePlayers().length.should.be.exactly(numPlayers);
             (function() { game.getAlivePlayerByNickOrThrow("TestUser2")}).should.not.throw();
@@ -154,7 +160,9 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                (function() { player.vote("yes")}).should.not.throw();
+					 if(index < _.size(game.getAlivePlayers()) / 2) {
+						 (function() { player.vote("yes")}).should.not.throw();
+					 }
             });
             game.voteInProgress.should.be.false;
             game.getAlivePlayers().length.should.be.exactly(numPlayers);
@@ -164,7 +172,9 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                (function() { player.vote("yes")}).should.not.throw();
+					 if(index < _.size(game.getAlivePlayers()) / 2) {
+						 (function() { player.vote("yes")}).should.not.throw();
+					 }
             });
             game.isNight.should.be.true;
         });
@@ -173,7 +183,9 @@ describe("Game", function() {
             var numPlayers = game.getAlivePlayers().length;
             (function() { player.callAirlockVote("")}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
-                (function() { player.vote("no")}).should.not.throw();
+					 if(index < _.size(game.getAlivePlayers()) / 2) {
+						 (function() { player.vote("no")}).should.not.throw();
+					 }
             });
             game.isNight.should.be.false;
         });
@@ -265,6 +277,16 @@ describe("Game", function() {
                 game.resolveAbilities();
                 game.getAlivePlayers().length.should.be.exactly(numPlayers);
                 (function() {game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
+            });
+            it("should not block a kill command targeted at self", function () {
+                var number2 = game.getPlayerByNickOrThrow("number2");
+                var numPlayers = game.getAlivePlayers().length;
+                game.isNight = true;
+                (function() {number2.onCommand("kill", "cylonblocker") }).should.not.throw();
+                (function() {blocker.onCommand("block", "number2") }).should.not.throw();
+                game.resolveAbilities();
+                game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
+                (function() {game.getAlivePlayerByNickOrThrow("cylonblocker");}).should.throw();
             });
         });
         describe("Swap ability", function() {
@@ -417,6 +439,9 @@ describe("Game", function() {
                 var n2 = game.getPlayerByNickOrThrow("number2");
                 n2.callAirlockVote("");
                 _.forEach(game.getAlivePlayers(), function (player, key) {
+						 if(game.isNight){
+							 return false;
+						 }
                     (function () {
                         player.vote("yes");
                     }).should.not.throw();

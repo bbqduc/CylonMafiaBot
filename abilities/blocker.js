@@ -4,22 +4,24 @@
  */
 
 var utils = require("../utils");
+var _ = require("lodash");
 var Blocker = function()
 {
     this.commandWord = "block";
-    this.abilityDescription = "Block another player from performing any actions during the night. Usage : !" + this.commandWord + " targetNick";
+    this.abilityDescription = "Block another player from performing any actions during the night, unless they are targeted at you. Usage : !" + this.commandWord + " targetNick";
     this.target = null;
     this.enabledNight = true;
     this.enabledDay = false;
     this.blockingListener = function(game, abilityParameters)
     {
-        if(abilityParameters.actor === this.target) {
+        if(abilityParameters.actor === this.target && !_.contains(abilityParameters.targets, this.actor)) {
             abilityParameters.actor.sendMessage("Your action was blocked!"); // TODO : more interesting messages! Like different stuff for bartender etc
             return false;
         }
     };
     this.abilityCallback = function(game, abilityParameters) {
         this.target = abilityParameters.targets[0];
+		  this.actor = abilityParameters.actor;
         game.addAbilityActorListener(this.target, this.blockingListener.bind(this));
     };
     this.parseCommand = function(game, restString) {

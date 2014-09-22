@@ -18,7 +18,11 @@ _.forEach(files, function(element, index) {
         exports[name] = function() {
             this.abilities = [];
             _.forEach(jsonObj.abilities, function(ability, index) {
-                this.abilities.push(new abilities[ability]());
+					 if(typeof(ability) === "string") {
+						 this.abilities.push(new abilities[ability]());
+					 } else {
+						 this.abilities.push(new abilities[ability[0]](ability[1]));
+					 }
             }, this);
             exports.role.call(this);
         };

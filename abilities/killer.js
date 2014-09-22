@@ -1,8 +1,8 @@
 var utils = require("../utils");
 var _ = require("lodash");
-var Killer = function(maxkilltimes)
+var Killer = function(params)
 {
-    this.maxKillTimes = maxkilltimes == null ? -1 : maxkilltimes; // infinite if not specified
+    this.maxKillTimes = params == null || params.maxKillsPerGame == null ? -1 : params.maxKillsPerGame; // infinite if not specified
     this.commandWord = "kill";
     this.message = '';
     this.abilityDescription = "Kill another player during the night. ";
@@ -34,8 +34,8 @@ var Killer = function(maxkilltimes)
         var targets = [];
         var splitPoint = restString.search(/\s/); // split on first whitespace, the rest becomes the kill message
         var targetNick = splitPoint === -1 ? restString : restString.substr(0, splitPoint);
-        targets.push(game.getPlayerByNickOrThrow(targetNick));
-        this.message = restString.substr(splitPoint).trim();
+        targets.push(game.getAlivePlayerByNickOrThrow(targetNick));
+        this.message = splitPoint === -1 ? "" : restString.substr(splitPoint).trim();
         return targets;
     };
 };
