@@ -76,13 +76,13 @@ var Game = function()
         }
     };
     Game.prototype.printPlayers = function(sender) {
-		 var nicks = _.pluck(this.getAlivePlayers(), "nick");
-		 if(nicks.length == 0) {
-			 this.communicationInterface.sendPrivateMessage(sender, "No players.");
-		 } else {
-			 this.communicationInterface.sendPrivateMessage(sender, "Alive players: " + nicks.join(", "));
-		 }
-	 };
+        var nicks = _.pluck(this.getAlivePlayers(), "nick");
+        if(nicks.length == 0) {
+            this.communicationInterface.sendPrivateMessage(sender, "No players.");
+        } else {
+            this.communicationInterface.sendPrivateMessage(sender, "Alive players: " + nicks.join(", "));
+        }
+    };
 
     Game.prototype.getPlayersFromFaction = function(faction) {
         return _.filter(this.players, function(player) {
@@ -105,7 +105,7 @@ var Game = function()
             var losers = [];
             _.forOwn(this.players, function(player, nick) {
                 if(player.role.resolveWin(this)) {
-                   winners.push(player.nick + " (" + player.originalRole.NAME + ")");
+                    winners.push(player.nick + " (" + player.originalRole.NAME + ")");
                 } else {
                     losers.push(player.nick + " (" + player.originalRole.NAME + ")");
                 }
@@ -128,12 +128,12 @@ var Game = function()
             return false;
         }
         if(restString != "") {
-           return false;
+            return false;
         }
-		  if(this.players[nick] == null) {
-			  this.players[nick] = new Player(nick, this);
-			  this.communicationInterface.sendPublicMessage(nick + " boarded the ship! Currently " + _.size(this.players) + " players on board. To leave the game before it starts, type " + "!leave".irc.bold() + ". For a full list of available commands, type " + "!commands.".irc.bold());
-		  }
+        if(this.players[nick] == null) {
+            this.players[nick] = new Player(nick, this);
+            this.communicationInterface.sendPublicMessage(nick + " boarded the ship! Currently " + _.size(this.players) + " players on board. To leave the game before it starts, type " + "!leave".irc.bold() + ". For a full list of available commands, type " + "!commands.".irc.bold());
+        }
         return true;
     };
     Game.prototype.removePlayer = function(nick)
@@ -142,10 +142,10 @@ var Game = function()
             this.communicationInterface.sendPublicMessage("Cannot leave an ongoing game!");
             return false;
         }
-		  if(this.players[nick] != null) {
-			  delete this.players[nick];
-			  this.communicationInterface.sendPublicMessage(nick + " confessed to being a cylon! Currently " + _.size(this.players) + " players on board.");
-		  }
+        if(this.players[nick] != null) {
+            delete this.players[nick];
+            this.communicationInterface.sendPublicMessage(nick + " confessed to being a cylon! Currently " + _.size(this.players) + " players on board.");
+        }
         return true;
     };
 
@@ -212,7 +212,7 @@ var Game = function()
                 humanRoles.push(new role());
             }
         });
-        var numberOfCylons = Math.round(_.size(this.players) / 3.0);
+        var numberOfCylons = Math.floor(_.size(this.players) / 3.0);
         if (cylonRoles.length < numberOfCylons || humanRoles.length < _.size(this.players) - numberOfCylons) {
             throw new Error("Oops, not enough roles for all players!");
         }
@@ -236,7 +236,7 @@ var Game = function()
         {
             roles[i].player = player;
             player.role = roles[i++];
-				player.originalRole = player.role;
+            player.originalRole = player.role;
             this.communicationInterface.sendPrivateMessage(player.nick, player.role.getInitialMessage(this));
         }, this);
     };
@@ -262,15 +262,15 @@ var Game = function()
                 this.communicationInterface.sendPublicMessage(nick + "(" + player.originalRole.NAME + ") was brutally murdered during the night!");
                 if(player.killMessage != "")
                     this.communicationInterface.sendPublicMessage("The killer left a message : " + player.killMessage);
-					 this.killedPlayers.push(nick);
+                this.killedPlayers.push(nick);
             }
         }, this);
     }
     Game.prototype.advanceToNextDay = function()
     {
-		  this.voteTargetsResolved = [];
+        this.voteTargetsResolved = [];
         this.detectNewDeadPeople();
-		  this.lastCylonCheck();
+        this.lastCylonCheck();
         if(!this.victoryCheck()) {
             this.currentDay++;
             this.isNight = false;
@@ -395,19 +395,19 @@ var Game = function()
     };
 
     Game.prototype.advanceToNight = function() {
-					 this.lastCylonCheck();
-                this.isNight = true;
-					 this.communicationInterface.sendPublicMessage("=========== NIGHT " + this.currentDay + "===========");
-                this.nextDayIfAllPlayersDone();
-	 };
+        this.lastCylonCheck();
+        this.isNight = true;
+        this.communicationInterface.sendPublicMessage("=========== NIGHT " + this.currentDay + "===========");
+        this.nextDayIfAllPlayersDone();
+    };
 
-	 Game.prototype.lastCylonCheck = function() {
-		 var cylons = this.getAlivePlayersFromFaction("Cylon");
-		 if(cylons.length === 1 && cylons[0].role.NAME != "number2") {
-				cylons[0].role = new roleClasses.number2();
-				this.communicationInterface.sendPrivateMessage(cylons[0].nick, "You're the last cylon alive, and you have been granted the power to kill.");
-		 }
-	 };
+    Game.prototype.lastCylonCheck = function() {
+        var cylons = this.getAlivePlayersFromFaction("Cylon");
+        if(cylons.length === 1 && cylons[0].role.NAME != "Cylon Number 2") {
+            cylons[0].role = new roleClasses.number2();
+            this.communicationInterface.sendPrivateMessage(cylons[0].nick, "You're the last cylon alive, and you have been granted the power to kill.");
+        }
+    };
 
     Game.prototype.resolveVote = function() {
         if(this.yesVotes > this.noVotes) {
@@ -422,7 +422,7 @@ var Game = function()
             this.communicationInterface.sendPublicMessage(message);
             this.resetVote();
             if(!this.victoryCheck()) {
-					this.advanceToNight();
+                this.advanceToNight();
             }
         } else {
             var message = "Motion fails. ";
@@ -432,11 +432,11 @@ var Game = function()
                 message += this.airlockVoteTarget.nick.irc.bold() + " stays alive.";
             }
             this.communicationInterface.sendPublicMessage(message);
-				this.voteTargetsResolved.push(this.airlockVoteTarget == null ? null : this.airlockVoteTarget.nick);
-				if(this.voteTargetsResolved.length >= this.getAlivePlayers().length+1) {
-					this.communicationInterface.sendPublicMessage("Admiral Adama says: No more voting for today.");
-					this.advanceToNight();
-				}
+            this.voteTargetsResolved.push(this.airlockVoteTarget == null ? null : this.airlockVoteTarget.nick);
+            if(this.voteTargetsResolved.length >= this.getAlivePlayers().length+1) {
+                this.communicationInterface.sendPublicMessage("Admiral Adama says: No more voting for today.");
+                this.advanceToNight();
+            }
             this.resetVote();
         }
     };
@@ -453,9 +453,9 @@ var Game = function()
         }
         var player;
         restString = restString.trim();
-		  if(_.contains(this.voteTargetsResolved, restString === "" ? null : restString)) {
+        if(_.contains(this.voteTargetsResolved, restString === "" ? null : restString)) {
             throw new Error("That vote has already been attempted today.");
-		  }
+        }
         if(restString === "") {
             player = null; // call a vote to not airlock anyone
             this.communicationInterface.sendPublicMessage(actor.nick + " has called a vote to skip throwing anyone out of the airlock today.");
@@ -467,17 +467,17 @@ var Game = function()
         this.voteInProgress = true;
     };
 
-Game.prototype.getCommandsString = function(sender) {
-	var ret = "";
-	_.forOwn(this.commandHandlers, function(value, name) {
-		ret += "!" + name + " : " + value.description + "\n";
-	});
-	var player = this.players[sender];
-	if(player != null) {
-		ret += player.getCommandsString();
-	}
-	this.communicationInterface.sendPrivateMessage(sender, ret);
-};
+    Game.prototype.getCommandsString = function(sender) {
+        var ret = "";
+        _.forOwn(this.commandHandlers, function(value, name) {
+            ret += "!" + name + " : " + value.description + "\n";
+        });
+        var player = this.players[sender];
+        if(player != null) {
+            ret += player.getCommandsString();
+        }
+        this.communicationInterface.sendPrivateMessage(sender, ret);
+    };
 
     this.commandHandlers = {
         "join": {callBack: Game.prototype.addPlayer.bind(this), description: "Join a game that hasn't yet started."},
