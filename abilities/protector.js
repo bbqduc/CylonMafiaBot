@@ -20,10 +20,13 @@ var Protector = function()
             abilityParameters.actor.sendMessage("You saved your target from certain death!");
         }
     };
-    this.parseCommand = function(game, restString) {
+    this.parseCommand = function(game, restString, actor) {
         var split = utils.getWhiteSpaceSeparatedParameters(restString, 1);
         var targets = [];
         targets[0] = game.getAlivePlayerByNickOrThrow(split[0]);
+        if(actor === targets[0]) {
+            throw new Error("Can't protect yourself!");
+        }
         return targets;
     };
 };

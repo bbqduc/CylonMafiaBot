@@ -56,7 +56,7 @@ Role.prototype.parseCommand = function(commandWord, restString, game, actor) {
     } else if(!game.isNight && !ability.enabledDay) {
         throw new Error("Can't use that ability during the day.");
     }
-    var targets = ability.parseCommand(game, restString);
+    var targets = ability.parseCommand(game, restString, actor);
     game.useAbility(ability, actor, targets);
     this.abilityUsed = true;
     actor.sendMessage("Command " + commandWord + " registered.");
