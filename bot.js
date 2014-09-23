@@ -85,7 +85,8 @@ if(argv.test) {
 	console.log("TEST MODE");
 }
 
+var channel = argv.channel ? argv.channel : "#tapiiri-cylon";
 var game = new Game();
-var bot = new CylonBot(argv._[0], "CylonMafiaBot", "#tapiiri-cylon", "bduc", game);
+var bot = new CylonBot(argv._[0], "CylonMafiaBot", channel, "bduc", game);
 
 module.exports = CylonBot;
