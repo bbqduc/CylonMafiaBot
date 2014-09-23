@@ -248,7 +248,7 @@ var Game = function()
 
         _.forOwn(this.players, function(player) {
             this.communicationInterface.sendPrivateMessage(player.nick, player.role.getInitialMessage(this));
-        }. this);
+        }, this);
     };
 
     Game.prototype.startGame = function()
