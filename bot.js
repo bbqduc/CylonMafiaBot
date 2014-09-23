@@ -5,7 +5,8 @@
 var irc = require("irc");
 var Game = require("./game");
 var _ = require("lodash");
-var argv = require("optimist").argv;
+//var argv = require("minimist")(process.argv.slice(2), {string: "channel"});
+var argv = require("yargs").argv;
 
 var CylonBot = function(server, botnick, channel, maintainernick, game, callback) {
     this.client = new irc.Client(server, botnick, {channels: [channel], floodProtection: false});
@@ -73,7 +74,6 @@ if(argv.test) {
 	};
 } else {
 	CylonBot.prototype.sendPrivateMessage = function(targetNick, message) {
-		if(!message) return;
 		 var msgs = message.split('\n');
 		 _.forEach(msgs, function(msg, index) {
 			  this.client.say(targetNick, msg);
@@ -85,7 +85,7 @@ if(argv.test) {
 	console.log("TEST MODE");
 }
 
-var channel = argv.channel ? argv.channel : "#tapiiri-cylon";
+var channel = argv.channel != null ? argv.channel : "#tapiiri-cylon";
 var game = new Game();
 var bot = new CylonBot(argv._[0], "CylonMafiaBot", channel, "bduc", game);
 

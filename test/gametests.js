@@ -10,6 +10,15 @@ var utils = require("../utils");
 var Game = require("../game");
 var roleClasses = require("../roles");
 
+var passVoting = function(game) {
+    game.getAlivePlayers()[0].callAirlockVote("");
+    _.forEach(game.getAlivePlayers(), function(player, index) {
+        if(game.voteInProgress) {
+            (function() { player.vote("yes")}).should.not.throw();
+        }
+    });
+};
+
 var allPlayersPass = function(game) {
 	_.forEach(game.getAlivePlayers(), function(player, key) {
 		player.onCommand("pass", "");
@@ -104,7 +113,7 @@ describe("Game", function() {
             game = new Game();
             utils.addManyPlayers(game, 6, "TestUser");
             game.startGame();
-				allPlayersPass(game);
+            allPlayersPass(game);
         });
         it("Calling a vote should not be possible when the game hasn't started", function() {
             game = new Game();
@@ -113,8 +122,10 @@ describe("Game", function() {
             (function() { player.callAirlockVote("TestUser2")}).should.throw();
         });
         it("Calling a vote should not be possible at night", function() {
+            game = new Game();
+            utils.addManyPlayers(game, 6, "TestUser");
+            game.startGame();
             var player = game.getPlayerByNickOrThrow("TestUser1");
-            game.isNight = true; // TODO : this is a pretty ham-fisted way to make it night
             (function() { player.callAirlockVote("TestUser2")}).should.throw();
         });
         it("Voting should not be possible until a vote has been called", function() {
@@ -265,36 +276,32 @@ describe("Game", function() {
             var blocker;
             beforeEach(function() {
                 blocker = game.getPlayerByNickOrThrow("cylonblocker");
-					 allPlayersPass(game);
             });
             it("should not be possible to use during the day", function () {
+                allPlayersPass(game);
                 (function() {blocker.onCommand("block", "number2") }).should.throw();
             });
             it("should be possible to use during the night", function () {
-                game.isNight = true;
                 (function() {blocker.onCommand("block", "number2") }).should.not.throw();
             });
             it("should not be possible to use it more than once per night", function () {
-                game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
                 (function() {blocker.onCommand("block", "number2") }).should.not.throw();
                 (function() {blocker.onCommand("block", "number2") }).should.throw();
             });
             it("should be possible to use it again on the next night", function () {
-                game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
                 (function() {blocker.onCommand("block", "number2") }).should.not.throw();
-                game.resolveAbilities();
-                game.isNight = true;
+                game.forceEndNight("bduc");
+                passVoting(game);
                 (function() {blocker.onCommand("block", "coloneltigh") }).should.not.throw();
             });
             it("should block a kill command", function () {
                 var number2 = game.getPlayerByNickOrThrow("number2");
                 var numPlayers = game.getAlivePlayers().length;
-                game.isNight = true;
                 (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
                 (function() {blocker.onCommand("block", "number2") }).should.not.throw();
-                game.resolveAbilities();
+                game.forceEndNight("bduc");
                 game.getAlivePlayers().length.should.be.exactly(numPlayers);
                 (function() {game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
             });

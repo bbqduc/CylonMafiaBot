@@ -30,9 +30,9 @@ Player.prototype.sendMessage = function(message) {
 
 Player.prototype.onCommand = function(commandWord, restString) {
     if(this.commandHandlers[commandWord] == null) {
-        if(this.role != null && this.role.parseCommand(commandWord, restString, this.game, this) !== false) {
-		  this.sendMessage("Command " + commandWord + " registered.");
-		  }
+        if(this.role != null) {
+            this.role.parseCommand(commandWord, restString, this.game, this);
+        }
     } else {
         this.commandHandlers[commandWord].callBack(restString);
     }

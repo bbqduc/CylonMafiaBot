@@ -204,7 +204,6 @@ var Game = function()
                 this.players[sender].onCommand(commandWord, restString);
             }
         } catch(e) {
-            console.log(e);
             this.communicationInterface.sendPrivateMessage(e.toString());
         }
     };
@@ -214,7 +213,7 @@ var Game = function()
         var humanRoles = [];
 
         _.forOwn(roleClasses, function (role, name) {
-            if (role == roleClasses.role) {
+            if (role == roleClasses.role || role == roleClasses.number2) {
                 return;
             }
             if (role.prototype.FACTION === "Cylon") {
@@ -224,19 +223,15 @@ var Game = function()
             }
         });
         var numberOfCylons = Math.floor(_.size(this.players) / 3.0);
-        if (cylonRoles.length < numberOfCylons || humanRoles.length < _.size(this.players) - numberOfCylons) {
+        if (cylonRoles.length+1 < numberOfCylons || humanRoles.length < _.size(this.players) - numberOfCylons) {
             throw new Error("Oops, not enough roles for all players!");
         }
         cylonRoles = _.shuffle(cylonRoles);
         humanRoles = _.shuffle(humanRoles);
         var roles = [];
-        if (numberOfCylons === 1) { // If only 1 cylon, make sure he can at least kill
-            roles[0] = new roleClasses.number2();
-        }
-        else {
-            for (i = 0; i < numberOfCylons; ++i) {
-                roles[i] = cylonRoles[i];
-            }
+        roles[0] = new roleClasses.number2();
+        for (i = 1; i < numberOfCylons; ++i) {
+            roles[i] = cylonRoles[i-1];
         }
         for(i = numberOfCylons; i < _.size(this.players); ++i) {
             roles[i] = humanRoles[i-numberOfCylons];
@@ -317,7 +312,7 @@ var Game = function()
     Game.prototype.isNightDone = function() {
         var allUsed = true;
         _.forEach(this.getAlivePlayers(), function(player, key) {
-            allUsed = allUsed && player.role.abilityUsed;
+            allUsed = allUsed && (player.role.commandWords.length === 0 || player.role.abilityUsed);
         }, this);
         return allUsed;
     };
@@ -333,14 +328,21 @@ var Game = function()
         this.nextDayIfAllPlayersDone();
     };
 
+    Game.prototype.resetListeners = function() {
+        this.abilityActorListeners = {};
+        this.abilityTargetListeners = {};
+        _.forEach(this.getAlivePlayers(), function (player, index) {
+            this.abilityActorListeners[player.nick] = [];
+            this.abilityTargetListeners[player.nick] = [];
+        }, this);
+    };
+
     Game.prototype.resolveAbilities = function() {
         this.abilitiesUsed = _.sortBy(this.abilitiesUsed, function(entry) { return entry.ability.RESOLVEORDER });
+        this.resetListeners();
         _.forEach(this.abilitiesUsed, function(abilityParameters) {
             var notBlocked = this.launchListeners(abilityParameters);
             if(notBlocked) {
-					console.log("Resolving " + abilityParameters.ability + "\n");
-					console.log("Actor " + abilityParameters.actor + "\n");
-					console.log("Targets " + abilityParameters.targets.join(""));
                 abilityParameters.ability.abilityCallback(this, abilityParameters);
             }
         }, this);
@@ -348,12 +350,6 @@ var Game = function()
     };
     Game.prototype.resetAbilities = function() {
         this.abilitiesUsed = [];
-        this.abilityActorListeners = {};
-        this.abilityTargetListeners = {};
-        _.forEach(this.getAlivePlayers(), function (player, index) {
-            this.abilityActorListeners[player.nick] = [];
-            this.abilityTargetListeners[player.nick] = [];
-        }, this);
     };
 
     Game.prototype.launchListeners = function(abilityParameters)
