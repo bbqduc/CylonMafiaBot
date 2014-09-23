@@ -1,0 +1,6 @@
+{
+    "abilities": [ ["supervoter", {"bonus" : "1"}] ],
+    "name": "Laura Roslin",
+    "faction": "Human",
+    "winresolver": "factionwinresolver"
+}
