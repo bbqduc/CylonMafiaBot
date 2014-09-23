@@ -10,7 +10,36 @@ var utils = require("../utils");
 var Game = require("../game");
 var roleClasses = require("../roles");
 
+var allPlayersPass = function(game) {
+	_.forEach(game.getAlivePlayers(), function(player, key) {
+		player.onCommand("pass", "");
+	});
+}
+
+
+var initGameWithAllRoles = function() {
+			  var game = new Game();
+            _.forOwn(roleClasses, function(role, name) {
+                if(name != "role") {
+                    game.addPlayer(name, "");
+                }
+            });
+            game.startGame();
+            _.forOwn(roleClasses, function(role, name) {
+                if(name != "role") {
+                    game.getPlayerByNickOrThrow(name).role = new roleClasses[name];
+                }
+            });
+				return game;
+}
+
 describe("Game", function() {
+    describe("Bot messages", function() {
+        it("should send private messages to each player at the start of the game", function() {
+			  var game = initGameWithAllRoles();
+			  game.communicationInterface.sentPrivateMessages.length.should.be.exactly(game.getAlivePlayers().length);
+		  });
+	 });
 
     describe("Joining and leaving", function() {
         var game = new Game();
@@ -75,9 +104,7 @@ describe("Game", function() {
             game = new Game();
             utils.addManyPlayers(game, 6, "TestUser");
             game.startGame();
-            _.forEach(game.getAlivePlayers(), function(player, key) {
-                player.onCommand("pass", "");
-            });
+				allPlayersPass(game);
         });
         it("Calling a vote should not be possible when the game hasn't started", function() {
             game = new Game();
@@ -108,12 +135,13 @@ describe("Game", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             (function() { player.vote("yes")}).should.not.throw();
-            game.yesVotes.should.be.exactly(player.role.votingPower);
+            (game.yesVotes + game.noVotes).should.be.exactly(player.role.votingPower);
             (function() { player.vote("yes")}).should.throw();
-            game.yesVotes.should.be.exactly(player.role.votingPower);
+            (game.yesVotes + game.noVotes).should.be.exactly(player.role.votingPower);
         });
         it("it should not be possible to change your vote", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
+				player.role = new roleClasses.roslin();
             (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
             (function() { player.vote("yes")}).should.not.throw();
             game.yesVotes.should.be.exactly(player.role.votingPower);
@@ -196,21 +224,7 @@ describe("Game", function() {
         });
     });
     describe("Using abilities", function() {
-        var initFunc = function() {
-            game = new Game();
-            _.forOwn(roleClasses, function(role, name) {
-                if(name != "role") {
-                    game.addPlayer(name, "");
-                }
-            });
-            game.startGame();
-            _.forOwn(roleClasses, function(role, name) {
-                if(name != "role") {
-                    game.getPlayerByNickOrThrow(name).role = new roleClasses[name];
-                }
-            });
-        };
-        beforeEach(initFunc);
+        beforeEach(function() { game = initGameWithAllRoles();});
 
         describe("Kill ability", function() {
             var number2;
@@ -251,9 +265,7 @@ describe("Game", function() {
             var blocker;
             beforeEach(function() {
                 blocker = game.getPlayerByNickOrThrow("cylonblocker");
-                _.forEach(game.getAlivePlayers(), function(player, key) {
-                    player.onCommand("pass", "");
-                });
+					 allPlayersPass(game);
             });
             it("should not be possible to use during the day", function () {
                 (function() {blocker.onCommand("block", "number2") }).should.throw();
@@ -301,9 +313,7 @@ describe("Game", function() {
             var swapper;
             beforeEach(function () {
                 swapper = game.getPlayerByNickOrThrow("coloneltigh");
-                _.forEach(game.getAlivePlayers(), function(player, key) {
-                    player.onCommand("pass", "");
-                });
+					 allPlayersPass(game);
             });
             it("should not be possible to use during the day", function () {
                 (function () {
@@ -353,9 +363,7 @@ describe("Game", function() {
         });
         describe("Supervoter ability", function() {
             it("should make your votes count as double", function () {
-                _.forEach(game.getAlivePlayers(), function(player, key) {
-                    player.onCommand("pass", "");
-                });
+					 allPlayersPass(game);
                 var roslin = game.getPlayerByNickOrThrow("roslin");
                 (function() { roslin.onCommand("airlock", "roslin"); }).should.not.throw();
                 game.yesVotes.should.be.exactly(0);
@@ -367,9 +375,7 @@ describe("Game", function() {
         });
         describe("Liar ability", function() {
             it("should make your votes count as reverse", function () {
-                _.forEach(game.getAlivePlayers(), function(player, key) {
-                    player.onCommand("pass", "");
-                });
+					 allPlayersPass(game);
                 var cylon = game.getAlivePlayers()[0];
 					 cylon.role = new roleClasses.cylonpolitician();
                 (function() { cylon.onCommand("airlock", cylon.nick); }).should.not.throw();
@@ -384,9 +390,7 @@ describe("Game", function() {
             var protector;
             beforeEach(function () {
                 protector = game.getPlayerByNickOrThrow("doctor");
-                _.forEach(game.getAlivePlayers(), function(player, key) {
-                    player.onCommand("pass", "");
-                });
+					 allPlayersPass(game);
             });
             it("should not be possible to use during the day", function () {
                 (function () {
@@ -472,9 +476,7 @@ describe("Game", function() {
                     game.getPlayerByNickOrThrow(name).role = new roleClasses[name];
                 }
             });
-            _.forEach(game.getAlivePlayers(), function(player, key) {
-                player.onCommand("pass", "");
-            });
+				allPlayersPass(game);
         });
         it("it should end in Cylon victory when humans are dead", function () {
             while(game.getAlivePlayersFromFaction("Human").length > 0) {

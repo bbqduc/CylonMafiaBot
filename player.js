@@ -35,9 +35,6 @@ Player.prototype.onCommand = function(commandWord, restString) {
 		  }
     } else {
         this.commandHandlers[commandWord].callBack(restString);
-		  if(commandWord === "pass") {
-			  this.sendMessage("Command " + commandWord + " registered.");
-		  }
     }
 };
 
@@ -51,6 +48,7 @@ Player.prototype.newDayCallback = function() {
 
 Player.prototype.passTurn = function() {
     this.role.abilityUsed = true;
+	 this.sendMessage("Command PASS registered.");
     this.game.nextDayIfAllPlayersDone();
 };
 

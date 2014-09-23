@@ -11,10 +11,14 @@ var abilities = require("./abilities" );
 
 var DummyCommunicationInterface = function()
 {
+	this.sentPublicMessages = [];
+	this.sentPrivateMessages = [];
     this.sendPublicMessage = function(message) {
+		 this.sentPublicMessages.push(message);
     };
 
     this.sendPrivateMessage = function(targetNick, message) {
+		 this.sentPrivateMessages.push({recipient: targetNick, message: message});
     };
 };
 
@@ -334,6 +338,9 @@ var Game = function()
         _.forEach(this.abilitiesUsed, function(abilityParameters) {
             var notBlocked = this.launchListeners(abilityParameters);
             if(notBlocked) {
+					console.log("Resolving " + abilityParameters.ability + "\n");
+					console.log("Actor " + abilityParameters.actor + "\n");
+					console.log("Targets " + abilityParameters.targets.join(""));
                 abilityParameters.ability.abilityCallback(this, abilityParameters);
             }
         }, this);
