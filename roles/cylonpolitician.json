@@ -1,0 +1,6 @@
+{
+    "abilities": [ "liar" ],
+    "name": "Cylon Politician",
+    "faction": "Cylon",
+    "winresolver": "factionwinresolver"
+}

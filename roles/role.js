@@ -68,20 +68,16 @@ Role.prototype.newDayCallback = function() {
 
 Role.prototype.vote = function(showYesVote) {
     var ret = {yesEffect: 0, noEffect: 0};
-    var voteTouched = false;
+	 if(showYesVote === true) {
+		 ret.yesEffect = this.votingPower;
+	 } else if(showYesVote === false) {
+		 ret.noEffect = this.votingPower;
+	 }
     _.forEach(this.abilities, function (ability, index) {
-        if(typeof(ability.vote) === "function") {
-            ability.vote(showYesVote, ret);
-            voteTouched = true;
+        if(typeof(ability.voteCallback) === "function") {
+            ability.voteCallback(showYesVote, ret);
         }
     });
-    if(voteTouched === false) {
-        if(showYesVote === true) {
-            ret.yesEffect = this.votingPower;
-        } else if(showYesVote === false) {
-            ret.noEffect = this.votingPower;
-        }
-    }
     return ret;
 };
 

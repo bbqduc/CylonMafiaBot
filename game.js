@@ -383,13 +383,13 @@ var Game = function()
         }
         if(showYesVote === true) {
             this.communicationInterface.sendPublicMessage(player.nick + " voted " + "YES".irc.bold.green());
-            this.yesVotes += yesEffect;
         }
         else if(showYesVote === false) {
             this.communicationInterface.sendPublicMessage(player.nick + " voted " + "NO".irc.bold.red());
-            this.noVotes += noEffect;
         }
         else { throw new Error("Vote " + votedYes + " not recognized."); }
+		  this.yesVotes += yesEffect;
+		  this.noVotes += noEffect;
         this.votedPlayers.push(player.nick);
         if(this.votedPlayers.length == _.size(this.getAlivePlayers()) || this.yesVotes > (this.getTotalVotingPower() / 2) || this.noVotes >= (this.getTotalVotingPower() / 2)) {
             this.resolveVote();

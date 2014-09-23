@@ -365,6 +365,21 @@ describe("Game", function() {
                 game.noVotes.should.be.exactly(0);
             });
         });
+        describe("Liar ability", function() {
+            it("should make your votes count as reverse", function () {
+                _.forEach(game.getAlivePlayers(), function(player, key) {
+                    player.onCommand("pass", "");
+                });
+                var cylon = game.getAlivePlayers()[0];
+					 cylon.role = new roleClasses.cylonpolitician();
+                (function() { cylon.onCommand("airlock", cylon.nick); }).should.not.throw();
+                game.yesVotes.should.be.exactly(0);
+                game.noVotes.should.be.exactly(0);
+                (function() { cylon.onCommand("vote", "yes"); }).should.not.throw();
+                game.yesVotes.should.be.exactly(0);
+                game.noVotes.should.be.exactly(1);
+            });
+        });
         describe("Protect ability", function() {
             var protector;
             beforeEach(function () {
