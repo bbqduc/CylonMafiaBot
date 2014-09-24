@@ -16,7 +16,7 @@ var bot;
 var server;
 var gotPm = false;
 
-describe('IRC', function() {
+describe.skip('IRC', function() {
     before(function(done) {
         server = new ircd.Server();
         server.config = { "network":  "ircn",

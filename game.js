@@ -98,7 +98,7 @@ var Game = function()
     Game.prototype.getTotalVotingPower = function() {
         return _(this.getAlivePlayers()).reduce(function(sum, player) {
             return sum + player.role.votingPower;
-        });
+        }, 0);
     };
 
     Game.prototype.getAlivePlayersFromFaction = function(faction) {
@@ -192,7 +192,11 @@ var Game = function()
                 this.players[sender].onCommand(commandWord, restString);
             }
         } catch(e) {
-            this.communicationInterface.sendPublicMessage(e.toString());
+            var msg = typeof(e) === "string" ? e : e.toString();
+            if(msg === undefined) {
+                msg = "Unknown error happened :o";
+            }
+            this.communicationInterface.sendPublicMessage(msg);
         }
     };
 

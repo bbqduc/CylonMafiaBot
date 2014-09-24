@@ -15,9 +15,9 @@ var Protector = function()
         var target = abilityParameters.targets[0];
         if(target.dead) {
             target.dead = false;
-            target.sendMessage("Someone saved you from death!");
-            target.killedBy.sendMessage("Someone saved your target!");
-            abilityParameters.actor.sendMessage("You saved your target from certain death!");
+            //target.sendMessage("Someone saved you from death!");
+            //target.killedBy.sendMessage("Someone saved your target!");
+            //abilityParameters.actor.sendMessage("You saved your target from certain death!");
         }
     };
     this.parseCommand = function(game, restString, actor) {

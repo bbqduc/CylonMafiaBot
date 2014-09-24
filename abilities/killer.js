@@ -20,7 +20,7 @@ var Killer = function(params)
                 target.dead = true;
                 target.killMessage = message;
                 target.killedBy = abilityParameters.actor;
-                target.sendMessage("You were attacked during the night!");
+//                target.sendMessage("You were attacked during the night!");
                 --this.maxKillTimes;
             }
         });

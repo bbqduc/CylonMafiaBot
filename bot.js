@@ -9,7 +9,7 @@ var _ = require("lodash");
 var argv = require("yargs").argv;
 
 var CylonBot = function(server, botnick, channel, maintainernick, game, callback) {
-    this.client = new irc.Client(server, botnick, {channels: [channel], floodProtection: false});
+    this.client = new irc.Client(server, botnick, {channels: [channel], floodProtection: false, floodProtectionDelay: 500});
     this.channel = channel;
     this.connected = false;
     this.game = game;
@@ -58,6 +58,7 @@ var CylonBot = function(server, botnick, channel, maintainernick, game, callback
 
 
 CylonBot.prototype.sendPublicMessage = function(message) {
+    if(message == undefined) return;
     var msgs = message.split('\n');
     _.forEach(msgs, function(msg, index) {
         this.client.say(this.channel, msg);
@@ -74,6 +75,7 @@ if(argv.test) {
 	};
 } else {
 	CylonBot.prototype.sendPrivateMessage = function(targetNick, message) {
+        if(message == undefined) return;
 		 var msgs = message.split('\n');
 		 _.forEach(msgs, function(msg, index) {
 			  this.client.say(targetNick, msg);

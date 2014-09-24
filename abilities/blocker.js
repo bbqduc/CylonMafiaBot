@@ -8,8 +8,10 @@ var _ = require("lodash");
 var Blocker = function()
 {
     this.commandWord = "block";
-    this.abilityDescription = "Block another player from performing any actions during the night, unless they are targeted at you. Usage : !" + this.commandWord + " targetNick";
+    this.abilityDescription = "Block another player from performing any actions during the night, unless they are targeted at you. Can't block the same target two nights in a row. Usage : !" + this.commandWord + " targetNick";
     this.target = null;
+    this.lastTarget = null;
+    this.lastUsedNight = -2;
     this.enabledNight = true;
     this.enabledDay = false;
     this.blockingListener = function(game, abilityParameters)
@@ -28,6 +30,11 @@ var Blocker = function()
         var split = utils.getWhiteSpaceSeparatedParameters(restString, 1);
         var targets = [];
         targets[0] = game.getAlivePlayerByNickOrThrow(split[0]);
+        if(targets[0] === this.lastTarget && game.currentDay - this.lastUsedNight < 2) {
+            throw new Error("Can't block the same dude two nights in a row!");
+        }
+        this.lastUsedNight = game.currentDay;
+        this.lastTarget = targets[0];
         return targets;
     };
 }
