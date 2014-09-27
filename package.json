@@ -1,22 +1,39 @@
 {
-    "name": "CylonMafiaBot",
-    "version": "0.0.1",
-    "description": "IRC bot for administering a BSG-flavored version of the mafia party game.",
-    "homepage": "https://github.com/bbqduc/CylonMafiaBot",
-    "bugs": {"url": "https://github.com/bbqduc/CylonMafiaBot/issues" },
-    "license": "MIT",
-    "author": {"name": "Johannes Ylinen"},
-    "files": ["game.js", "bot.js", "player.js", "abilities", "winresolvers", "test", "roles"],
-    "dependencies": {
-        "irc" : "",
-        "irc-colors": "",
-        "ircdjs": "",
-        "lodash": "",
-        "mocha": "",
-        "yargs": "",
-        "should": ""
-    },
-    "scripts": {
-        "test": "mocha"
-    }
+  "name": "CylonMafiaBot",
+  "version": "0.0.1",
+  "description": "IRC bot for administering a BSG-flavored version of the mafia party game.",
+  "homepage": "https://github.com/bbqduc/CylonMafiaBot",
+  "bugs": {
+    "url": "https://github.com/bbqduc/CylonMafiaBot/issues"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Johannes Ylinen"
+  },
+  "files": [
+    "game.js",
+    "bot.js",
+    "player.js",
+    "abilities",
+    "winresolvers",
+    "test",
+    "roles"
+  ],
+  "dependencies": {
+    "bookshelf": "^0.7.7",
+    "irc": "",
+    "irc-colors": "",
+    "ircdjs": "",
+    "knex": "^0.6.22",
+    "lodash": "",
+    "mocha": "",
+    "pg": "^3.4.4",
+    "sequelize": "^2.0.0-rc1",
+    "should": "",
+    "sqlite3": "^3.0.0",
+    "yargs": ""
+  },
+  "scripts": {
+    "test": "mocha"
+  }
 }

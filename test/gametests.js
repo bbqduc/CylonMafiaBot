@@ -9,91 +9,117 @@ var utils = require("../utils");
 
 var Game = require("../game");
 var roleClasses = require("../roles");
-
-var passVoting = function(game) {
-    game.getAlivePlayers()[0].callAirlockVote("");
-    _.forEach(game.getAlivePlayers(), function(player, index) {
-        if(game.voteInProgress) {
-            (function() { player.vote("yes")}).should.not.throw();
-        }
-    });
-};
+var abilityClasses = require("../abilities");
 
 var allPlayersPass = function(game) {
 	_.forEach(game.getAlivePlayers(), function(player, key) {
-		player.onCommand("pass", "");
+        game.onCommand(player.nick, {id: "pass"});
+		//player.onCommand("pass", "");
 	});
-}
+};
+
+var passVoting = function(game) {
+    game.onCommand(game.getAlivePlayers()[0].nick, {id :"airlock"});
+    _.forEach(game.getAlivePlayers(), function (player, key) {
+        if(game.isNight){
+            return false;
+        }
+        game.onCommand(player.nick, {id :"vote", votedYes: !(player.role instanceof roleClasses.cylonpolitician)});
+    });
+};
 
 
-var initGameWithAllRoles = function() {
-			  var game = new Game();
-            _.forOwn(roleClasses, function(role, name) {
-                if(name != "role") {
-                    game.addPlayer(name, "");
-                }
-            });
-            game.startGame();
-            _.forOwn(roleClasses, function(role, name) {
-                if(name != "role") {
-                    game.getPlayerByNickOrThrow(name).role = new roleClasses[name];
-                }
-            });
-				return game;
-}
+var initGameWithAllRoles = function(done) {
+    var game = new Game();
+    _.forOwn(roleClasses, function(role, name) {
+        if(name != "role") {
+            game.addPlayer(name, "");
+        }
+    });
+    game.startGame().then(function() {
+        _.forOwn(roleClasses, function(role, name) {
+            if(name != "role") {
+                game.getPlayerByNickOrThrow(name).role = new roleClasses[name];
+            }
+        });
+        done(game);
+    });
+};
 
 describe("Game", function() {
     describe("Bot messages", function() {
-        it("should send private messages to each player at the start of the game", function() {
-			  var game = initGameWithAllRoles();
-			  game.communicationInterface.sentPrivateMessages.length.should.be.exactly(game.getAlivePlayers().length);
+        it("should send private messages to each player at the start of the game", function(done) {
+			  initGameWithAllRoles(function(game){
+                  game.communicationInterface.sentPrivateMessages.length.should.be.exactly(game.getAlivePlayers().length);
+                  done();
+              });
 		  });
 	 });
 
     describe("Joining and leaving", function() {
-        var game = new Game();
-        beforeEach(function() { game = new Game();});
-        it("should be possible to join a game", function() {
-            game.onPublicMessage("TestUser1", "!join");
-            game.onPublicMessage("TestUser1", "!join");
-            _.size(game.players).should.be.exactly(1);
+        var game;
+        beforeEach(function()
+        {
+            game = new Game();
         });
-        it("should be possible to leave a game", function() {
-            game.onPublicMessage("TestUser1", "!join");
-            game.onPublicMessage("TestUser1", "!leave");
-            game.onPublicMessage("TestUser1", "!leave");
-            _.size(game.players).should.be.exactly(0);
+        it("should be possible to join a game", function(done) {
+            game.onCommand("TestUser1", {id: "join"});
+            game.onCommand("TestUser1", {id: "join"});
+            game.startGame()
+                .then()
+                .catch()
+               .finally(function() {
+                    _.size(game.players).should.be.exactly(1);
+                    done();
+                });
         });
-        it("should not be possible to join an ongoing game", function() {
-            game.onPublicMessage("TestUser1", "!join");
-            game.onPublicMessage("TestUser2", "!join");
-            game.onPublicMessage("TestUser3", "!join");
-            game.onPublicMessage("TestUser4", "!join");
-            game.startGame();
-            game.onPublicMessage("TestUser2", "!join");
-            _.size(game.players).should.be.exactly(4);
+        it("should be possible to leave a game", function(done) {
+            game.onCommand("TestUser1", {id: "join"});
+            game.onCommand("TestUser1", {id: "leave"});
+            game.onCommand("TestUser1", {id: "leave"});
+            game.startGame()
+                .then()
+                .catch()
+                .finally(function() {
+                    _.size(game.players).should.be.exactly(0);
+                    done();
+                });
+        });
+        it("should not be possible to join an ongoing game", function(done) {
+            game.onCommand("TestUser1", {id: "join"});
+            game.onCommand("TestUser2", {id: "join"});
+            game.onCommand("TestUser3", {id: "join"});
+            game.onCommand("TestUser4", {id: "join"});
+            game.startGame().finally(function() {
+                game.onCommand("TestUser5", {id: "join"});
+                _.size(game.players).should.be.exactly(4);
+                done();
+            });
         });
         it("should not be possible to leave an ongoing game", function() {
-            game.onPublicMessage("TestUser1", "!join");
-            game.onPublicMessage("TestUser2", "!join");
-            game.onPublicMessage("TestUser3", "!join");
-            game.onPublicMessage("TestUser4", "!join");
-            game.startGame();
-            game.onPublicMessage("TestUser1", "!leave");
-            _.size(game.players).should.be.exactly(4);
+            game.onCommand("TestUser1", {id: "join"});
+            game.onCommand("TestUser2", {id: "join"});
+            game.onCommand("TestUser3", {id: "join"});
+            game.onCommand("TestUser4", {id: "join"});
+            game.startGame().finally(function() {
+                game.onCommand("TestUser4", {id: "leave"});
+                _.size(game.players).should.be.exactly(4);
+            });
         });
     });
     describe("Determining roles", function() {
-        var game = new Game();
+        var game;
         var numPlayers = 5;
         var names = [];
-        var i;
-        for(i=0;i<numPlayers;++i) {
-            names.push("TestUser" + i);
-            game.onPublicMessage(names[i], "!join");
-        }
-        game.startGame();
-
+        beforeEach(function(done) {
+            game = new Game();
+            var i;
+            for (i = 0; i < numPlayers; ++i) {
+                names.push("TestUser" + i);
+                game.onCommand(names[i], {id: "join"});
+            }
+            game.startGame().then(done);
+        });
         it("All players should receive a role", function() {
             for(i=0;i<numPlayers;++i) {
                 (game.players[names[i]].role == null).should.be.false;
@@ -109,165 +135,203 @@ describe("Game", function() {
     });
     describe("Voting", function() {
         var game;
-        beforeEach(function() {
+        beforeEach(function(done) {
             game = new Game();
             utils.addManyPlayers(game, 6, "TestUser");
-            game.startGame();
-            allPlayersPass(game);
+            game.startGame().then(function() {
+                allPlayersPass(game);
+                done();
+            });
         });
         it("Calling a vote should not be possible when the game hasn't started", function() {
             game = new Game();
-            utils.addManyPlayers(game, 5, "TestUser");
-            var player = game.getPlayerByNickOrThrow("TestUser1");
-            (function() { player.callAirlockVote("TestUser2")}).should.throw();
+            utils.addManyPlayers(game, 6, "TestUser");
+                (function() { game.onCommand("TestUser2", {id :"airlock", target: "TestUser1"})}).should.throw();
         });
-        it("Calling a vote should not be possible at night", function() {
+        it("Calling a vote should not be possible at night", function(done) {
             game = new Game();
             utils.addManyPlayers(game, 6, "TestUser");
-            game.startGame();
-            var player = game.getPlayerByNickOrThrow("TestUser1");
-            (function() { player.callAirlockVote("TestUser2")}).should.throw();
+            game.startGame().then(function() {
+                (function() { game.onCommand("TestUser2", {id :"airlock", target: "TestUser1"})}).should.throw();
+                done();
+            });
         });
         it("Voting should not be possible until a vote has been called", function() {
-            var player = game.getPlayerByNickOrThrow("TestUser1");
-            (function() { player.vote("yes")}).should.throw();
+            (function() { game.onCommand("TestUser1", {id :"vote", votedYes: true});}).should.throw();
         });
         it("Calling a vote should be possible when no vote is active", function() {
-            var player = game.getPlayerByNickOrThrow("TestUser1");
-            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            (function() { game.onCommand("TestUser1", {id :"airlock", target: "TestUser2"});}).should.not.throw();
             game.airlockVoteTarget.nick.should.be.exactly("TestUser2");
         });
         it("Voting should be possible once vote has been called", function() {
-            var player = game.getPlayerByNickOrThrow("TestUser1");
-            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
-            (function() { player.vote("yes")}).should.not.throw();
+
+            (function() { game.onCommand("TestUser2", {id: "airlock", target: "TestUser2"})}).should.not.throw();
+            (function() { game.onCommand("TestUser2", {id: "vote", votedYes: true})}).should.not.throw();
         });
         it("it should not be possible to vote more than once", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
-            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
-            (function() { player.vote("yes")}).should.not.throw();
+            (function() { game.onCommand("TestUser2", {id: "airlock", target: "TestUser2"})}).should.not.throw();
+            (function() { game.onCommand("TestUser1", {id: "vote", votedYes: true})}).should.not.throw();
             (game.yesVotes + game.noVotes).should.be.exactly(player.role.votingPower);
-            (function() { player.vote("yes")}).should.throw();
+            (function() { game.onCommand("TestUser1", {id: "vote", votedYes: true})}).should.throw();
             (game.yesVotes + game.noVotes).should.be.exactly(player.role.votingPower);
         });
         it("it should not be possible to change your vote", function() {
             var player = game.getPlayerByNickOrThrow("TestUser1");
-				player.role = new roleClasses.roslin();
-            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
-            (function() { player.vote("yes")}).should.not.throw();
-            game.yesVotes.should.be.exactly(player.role.votingPower);
-            (function() { player.vote("no")}).should.throw();
-            game.yesVotes.should.be.exactly(player.role.votingPower);
+            (function() { game.onCommand("TestUser2", {id: "airlock", target: "TestUser2"})}).should.not.throw();
+            (function() { game.onCommand("TestUser1", {id: "vote", votedYes: true})}).should.not.throw();
+            (game.yesVotes + game.noVotes).should.be.exactly(player.role.votingPower);
+            (function() { game.onCommand("TestUser1", {id: "vote", votedYes: false})}).should.throw();
+            (game.yesVotes + game.noVotes).should.be.exactly(player.role.votingPower);
         });
         it("voting should finish when a majority has been reached", function() {
-            var player = game.getPlayerByNickOrThrow("TestUser1");
-            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            (function() { game.onCommand("TestUser2", {id: "airlock", target: "TestUser2"})}).should.not.throw();
+            var totalVotingPower = game.getTotalVotingPower();
             _.forEach(game.getAlivePlayers(), function(player, index) {
                 var noVotes = game.noVotes;
-                (function() { player.vote("no")}).should.not.throw();
-                if(player.role.votingPower + noVotes >= game.getTotalVotingPower() / 2) {
+                (function() { game.onCommand(player.nick, {id: "vote", votedYes: player.role instanceof roleClasses.cylonpolitician})}).should.not.throw();
+                if(player.role.votingPower + noVotes >= totalVotingPower / 2) {
                     return false;
                 }
             });
-            (game.airlockVoteTarget == null).should.be.true;
-            game.voteInProgress.should.be.false;
             game.yesVotes.should.be.exactly(0);
             game.noVotes.should.be.exactly(0);
+            (game.airlockVoteTarget == null).should.be.true;
+            game.voteInProgress.should.be.false;
             game.votedPlayers.length.should.be.exactly(0);
         });
         it("a majority yes-vote should result in the target dying", function() {
-            var player = game.getPlayerByNickOrThrow("TestUser1");
             var numPlayers = game.getAlivePlayers().length;
-            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            (function() { game.onCommand("TestUser2", {id: "airlock", target: "TestUser2"})}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
                 if(game.voteInProgress) {
-                    (function() { player.vote("yes")}).should.not.throw();
+                    (function() { game.onCommand(player.nick, {id: "vote", votedYes: true})}).should.not.throw();
+                } else {
+                    return false;
                 }
             });
             game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
             (function() { game.getAlivePlayerByNickOrThrow("TestUser2")}).should.throw();
         });
         it("a majority no-vote should result in the target surviving", function() {
-            var player = game.getPlayerByNickOrThrow("TestUser1");
             var numPlayers = game.getAlivePlayers().length;
-            (function() { player.callAirlockVote("TestUser2")}).should.not.throw();
+            (function() { game.onCommand("TestUser2", {id: "airlock", target: "TestUser2"})}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
                 if(game.voteInProgress) {
-                    (function() { player.vote("no")}).should.not.throw();
+                    (function() { game.onCommand(player.nick, {id: "vote", votedYes: false})}).should.not.throw();
+                } else {
+                    return false;
                 }
             });
             game.getAlivePlayers().length.should.be.exactly(numPlayers);
             (function() { game.getAlivePlayerByNickOrThrow("TestUser2")}).should.not.throw();
         });
         it("a vote to skip the airlocking should result in no deaths", function() {
-            var player = game.getPlayerByNickOrThrow("TestUser1");
             var numPlayers = game.getAlivePlayers().length;
-            (function() { player.callAirlockVote("")}).should.not.throw();
+            (function() { game.onCommand("TestUser2", {id: "airlock"});}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
                 if(game.voteInProgress) {
-                    (function() { player.vote("yes")}).should.not.throw();
+                    (function() { game.onCommand(player.nick, {id: "vote", votedYes: true})}).should.not.throw();
+                } else {
+                    return false;
                 }
             });
             game.voteInProgress.should.be.false;
             game.getAlivePlayers().length.should.be.exactly(numPlayers);
         });
         it("a passing vote should trigger nighttime", function() {
-            var player = game.getPlayerByNickOrThrow("TestUser1");
             var numPlayers = game.getAlivePlayers().length;
-            (function() { player.callAirlockVote("")}).should.not.throw();
+            (function() { game.onCommand("TestUser2", {id: "airlock"});}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
                 if(game.voteInProgress) {
-                    (function() { player.vote("yes")}).should.not.throw();
+                    (function() { game.onCommand(player.nick, {id: "vote", votedYes: true})}).should.not.throw();
+                } else {
+                    return false;
                 }
             });
+            game.voteInProgress.should.be.false;
             game.isNight.should.be.true;
         });
         it("a failing vote should not trigger nighttime", function() {
-            var player = game.getPlayerByNickOrThrow("TestUser1");
             var numPlayers = game.getAlivePlayers().length;
-            (function() { player.callAirlockVote("")}).should.not.throw();
+            (function() { game.onCommand("TestUser2", {id: "airlock"});}).should.not.throw();
             _.forEach(game.getAlivePlayers(), function(player, index) {
                 if(game.voteInProgress) {
-                    (function() { player.vote("no")}).should.not.throw();
+                    (function() { game.onCommand(player.nick, {id: "vote", votedYes: false})}).should.not.throw();
+                } else {
+                    return false;
                 }
             });
+            game.voteInProgress.should.be.false;
             game.isNight.should.be.false;
         });
     });
     describe("Using abilities", function() {
-        beforeEach(function() { game = initGameWithAllRoles();});
+        describe("Generic usage tests", function() {
+            _.forOwn(abilityClasses, function(ability, name) {
+                if(ability == abilityClasses.ability) return;
+
+                describe(name, function() {
+                    var obj = new ability();
+                    it("should " + (obj.enabledDay ? "" : "not") + " be possible to use during the day", function () {
+                        allPlayersPass(game);
+                        game.isNight.should.be.false;
+                        var alivePlayers = game.getAlivePlayers();
+                        var targets = [];
+                        for (var i = 0; i < obj.maxTargets; ++i) {
+                            targets.push(alivePlayers[i].nick);
+                        }
+                        if (obj.enabledDay) {
+                            (function () {
+                                obj.validateCommand(game, {id: ability.commandWord, targets: targets});
+                            }).should.not.throw();
+                        } else {
+                            (function () {
+                                obj.validateCommand(game, {id: ability.commandWord, targets: targets});
+                            }).should.throw();
+                        }
+                    });
+                    it("should " + (obj.enabledNight ? "" : "not") + " be possible to use during the night", function () {
+                        game.isNight.should.be.true;
+                        var alivePlayers = game.getAlivePlayers();
+                        var targets = [];
+                        for (var i = 0; i < obj.maxTargets; ++i) {
+                            targets.push(alivePlayers[i].nick);
+                        }
+                        if (obj.enabledNight) {
+                            (function () {
+                                obj.validateCommand(game, {id: ability.commandWord, targets: targets});
+                            }).should.not.throw();
+                        } else {
+                            (function () {
+                                obj.validateCommand(game, {id: ability.commandWord, targets: targets});
+                            }).should.throw();
+                        }
+                    });
+                    });
+                });
+        });
+        var game;
+        beforeEach(function(done) {
+            initGameWithAllRoles(function(instance) {
+                game = instance;
+                done();
+            });
+        });
 
         describe("Kill ability", function() {
-            var number2;
-            beforeEach(function() {
-                number2 = game.getPlayerByNickOrThrow("number2");
-            });
-            it("should not be possible to use during the day", function () {
-                (function() {number2.onCommand("kill", "TestUser1") }).should.throw();
-            });
-            it("should be possible to use during the night", function () {
-                game.isNight = true;
-                (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
-            });
-            it("should not be possible to use it more than once per night", function () {
-                game.isNight = true;
-                var numPlayers = game.getAlivePlayers().length;
-                (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
-                (function() {number2.onCommand("kill", "coloneltigh") }).should.throw();
-            });
-            it("should be possible to use it again on the next night", function () {
-                game.isNight = true;
-                var numPlayers = game.getAlivePlayers().length;
-                (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
-                game.resolveAbilities();
-                game.isNight = true;
-                (function() {number2.onCommand("kill", "coloneltigh") }).should.not.throw();
+            it("should not be possible to use too many charges", function () {
+                game.isNight.should.be.true;
+                (function() {game.onCommand("tomzarek", {id: "kill", targets: ["number2"]});}).should.not.throw();
+                game.forceEndNight();
+                game.advanceToNight();
+                (function() {game.onCommand("tomzarek", {id: "kill", targets: ["tomzarek"]});}).should.throw();
             });
             it("should result in the target's death with no outside intervention", function () {
-                game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
-                game.resolveAbilities();
+                game.isNight.should.be.true;
+                (function() {game.onCommand("number2", {id: "kill", targets: ["tomzarek"]});}).should.not.throw();
+                game.forceEndNight();
                 game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
                 (function() {game.getAlivePlayerByNickOrThrow("tomzarek"); }).should.throw();
             });
@@ -277,189 +341,84 @@ describe("Game", function() {
             beforeEach(function() {
                 blocker = game.getPlayerByNickOrThrow("cylonblocker");
             });
-            it("should not be possible to use during the day", function () {
-                allPlayersPass(game);
-                (function() {blocker.onCommand("block", "number2") }).should.throw();
-            });
-            it("should be possible to use during the night", function () {
-                (function() {blocker.onCommand("block", "number2") }).should.not.throw();
-            });
-            it("should not be possible to use it more than once per night", function () {
-                var numPlayers = game.getAlivePlayers().length;
-                (function() {blocker.onCommand("block", "number2") }).should.not.throw();
-                (function() {blocker.onCommand("block", "number2") }).should.throw();
-            });
-            it("should be possible to use it again on the next night", function () {
-                var numPlayers = game.getAlivePlayers().length;
-                (function() {blocker.onCommand("block", "number2") }).should.not.throw();
-                game.forceEndNight("bduc");
-                passVoting(game);
-                (function() {blocker.onCommand("block", "coloneltigh") }).should.not.throw();
-            });
             it("should block a kill command", function () {
-                var number2 = game.getPlayerByNickOrThrow("number2");
                 var numPlayers = game.getAlivePlayers().length;
-                (function() {number2.onCommand("kill", "tomzarek") }).should.not.throw();
-                (function() {blocker.onCommand("block", "number2") }).should.not.throw();
-                game.forceEndNight("bduc");
+                game.isNight.should.be.true;
+                (function() {game.onCommand("number2", {id: "kill", targets: ["tomzarek"]});}).should.not.throw();
+                (function() {game.onCommand("humanblocker", {id: "block", targets: ["number2"]});}).should.not.throw();
+                game.forceEndNight();
                 game.getAlivePlayers().length.should.be.exactly(numPlayers);
                 (function() {game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
             });
             it("should not block a kill command targeted at self", function () {
-                var number2 = game.getPlayerByNickOrThrow("number2");
                 var numPlayers = game.getAlivePlayers().length;
-                game.isNight = true;
-                (function() {number2.onCommand("kill", "cylonblocker") }).should.not.throw();
-                (function() {blocker.onCommand("block", "number2") }).should.not.throw();
-                game.resolveAbilities();
+                game.isNight.should.be.true;
+                (function() {game.onCommand("number2", {id: "kill", targets: ["humanblocker"]});}).should.not.throw();
+                (function() {game.onCommand("humanblocker", {id: "block", targets: ["number2"]});}).should.not.throw();
+                game.forceEndNight();
                 game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
-                (function() {game.getAlivePlayerByNickOrThrow("cylonblocker");}).should.throw();
+                (function() {game.getAlivePlayerByNickOrThrow("humanblocker");}).should.throw();
             });
         });
         describe("Swap ability", function() {
-            var swapper;
-            beforeEach(function () {
-                swapper = game.getPlayerByNickOrThrow("coloneltigh");
-					 allPlayersPass(game);
-            });
-            it("should not be possible to use during the day", function () {
-                (function () {
-                    swapper.onCommand("swap", "number2 tomzarek")
-                }).should.throw();
-            });
-            it("should be possible to use during the night", function () {
-                game.isNight = true;
-                (function () {
-                    swapper.onCommand("swap", "number2 tomzarek")
-                }).should.not.throw();
-            });
-            it("should not be possible to use it more than once per night", function () {
-                game.isNight = true;
-                (function () {
-                    swapper.onCommand("swap", "number2 tomzarek")
-                }).should.not.throw();
-                (function () {
-                    swapper.onCommand("swap", "number2 tomzarek")
-                }).should.throw();
-            });
-            it("should be possible to use it again on the next night", function () {
-                game.isNight = true;
-                (function () {
-                    swapper.onCommand("swap", "number2 tomzarek")
-                }).should.not.throw();
-                game.resolveAbilities();
-                game.isNight = true;
-                (function () {
-                    swapper.onCommand("swap", "coloneltigh tomzarek")
-                }).should.not.throw();
-            });
             it("should swap a kill order", function () {
-                game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function () {
-                    swapper.onCommand("swap", "number2 tomzarek")
-                }).should.not.throw();
-                (function () {
-                    game.onPrivateMessage("number2", "!kill tomzarek");
-                }).should.not.throw();
-                game.resolveAbilities();
+                game.isNight.should.be.true;
+                (function() {game.onCommand("number2", {id: "kill", targets: ["tomzarek"]});}).should.not.throw();
+                (function() {game.onCommand("coloneltigh", {id: "swap", targets: ["number2", "tomzarek"]});}).should.not.throw();
+                game.forceEndNight();
                 game.getAlivePlayers().length.should.be.exactly(numPlayers-1);
-                (function () { game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
-                (function () { game.getAlivePlayerByNickOrThrow("number2");}).should.throw();
+                (function() {game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
+                (function() {game.getAlivePlayerByNickOrThrow("number2");}).should.throw();
             });
         });
         describe("Supervoter ability", function() {
             it("should make your votes count as double", function () {
-					 allPlayersPass(game);
-                var roslin = game.getPlayerByNickOrThrow("roslin");
-                (function() { roslin.onCommand("airlock", "roslin"); }).should.not.throw();
+                allPlayersPass(game);
+                (function() { game.onCommand("cylonpolitician", {id: "airlock", target: "roslin"}); }).should.not.throw();
                 game.yesVotes.should.be.exactly(0);
                 game.noVotes.should.be.exactly(0);
-                (function() { roslin.onCommand("vote", "yes"); }).should.not.throw();
+                (function() { game.onCommand("roslin", {id: "vote", votedYes: true}); }).should.not.throw();
                 game.yesVotes.should.be.exactly(2);
                 game.noVotes.should.be.exactly(0);
             });
         });
         describe("Liar ability", function() {
             it("should make your votes count as reverse", function () {
-					 allPlayersPass(game);
-                var cylon = game.getAlivePlayers()[0];
-					 cylon.role = new roleClasses.cylonpolitician();
-                (function() { cylon.onCommand("airlock", cylon.nick); }).should.not.throw();
+                 allPlayersPass(game);
+                (function() { game.onCommand("cylonpolitician", {id: "airlock", target: "roslin"}); }).should.not.throw();
                 game.yesVotes.should.be.exactly(0);
                 game.noVotes.should.be.exactly(0);
-                (function() { cylon.onCommand("vote", "yes"); }).should.not.throw();
+                (function() { game.onCommand("cylonpolitician", {id: "vote", votedYes: true}); }).should.not.throw();
                 game.yesVotes.should.be.exactly(0);
                 game.noVotes.should.be.exactly(1);
             });
         });
         describe("Protect ability", function() {
-            var protector;
-            beforeEach(function () {
-                protector = game.getPlayerByNickOrThrow("doctor");
-					 allPlayersPass(game);
-            });
-            it("should not be possible to use during the day", function () {
-                (function () {
-                    protector.onCommand("protect", "tomzarek")
-                }).should.throw();
-            });
-            it("should be possible to use during the night", function () {
-                game.isNight = true;
-                (function () {
-                    protector.onCommand("protect", "tomzarek")
-                }).should.not.throw();
-            });
-            it("should not be possible to use it more than once per night", function () {
-                game.isNight = true;
-                (function () {
-                    protector.onCommand("protect", "tomzarek")
-                }).should.not.throw();
-                (function () {
-                    protector.onCommand("protect", "tomzarek")
-                }).should.throw();
-            });
-            it("should be possible to use it again on the next night", function () {
-                game.isNight = true;
-                (function () {
-                    protector.onCommand("protect", "tomzarek")
-                }).should.not.throw();
-                game.resolveAbilities();
-                game.isNight = true;
-                (function () {
-                    protector.onCommand("protect", "tomzarek")
-                }).should.not.throw();
-            });
             it("should protect from a kill order", function () {
-                game.isNight = true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function () {
-                    protector.onCommand("protect", "tomzarek")
-                }).should.not.throw();
-                (function () {
-                    game.onPrivateMessage("number2", "!kill tomzarek");
-                }).should.not.throw();
-                game.resolveAbilities();
+                game.isNight.should.be.true;
+                (function() {game.onCommand("number2", {id: "kill", targets: ["tomzarek"]});}).should.not.throw();
+                (function() {game.onCommand("doctor", {id: "protect", targets: ["tomzarek"]});}).should.not.throw();
+                game.forceEndNight();
                 game.getAlivePlayers().length.should.be.exactly(numPlayers);
-                (function () { game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
+                (function() {game.getAlivePlayerByNickOrThrow("tomzarek");}).should.not.throw();
             });
         });
         describe("Night cycle", function() {
             it("it should become day when all players have used their abilities/passed", function () {
                 game.isNight.should.be.true;
-                _.forEach(game.getAlivePlayers(), function(player, key) {
-                    (function() {player.onCommand("pass", "");}).should.not.throw();
-                });
+                allPlayersPass(game);
                 game.isNight.should.be.false;
             });
             it("abilities should be resolved after cycle", function () {
                 game.isNight.should.be.true;
                 var numPlayers = game.getAlivePlayers().length;
-                (function() {game.getPlayerByNickOrThrow("number2").onCommand("kill", "tomzarek") }).should.not.throw();
+                (function() {game.onCommand("number2", {id: "kill", targets: ["tomzarek"]});}).should.not.throw();
                 _.forEach(game.getAlivePlayers(), function(player, key) {
                     if(player.nick != "number2") {
                         (function () {
-                            player.onCommand("pass", "");
+                            (function() {game.onCommand(player.nick, {id: "pass"});}).should.not.throw();
                         }).should.not.throw();
                     }
                 });
@@ -470,50 +429,35 @@ describe("Game", function() {
         });
     });
     describe("Game flow", function() {
-        beforeEach(function() {
-            game = new Game();
-            _.forOwn(roleClasses, function(role, name) {
-                if(name != "role") {
-                    game.addPlayer(name, "");
-                }
-            });
-            game.startGame();
-            _.forOwn(roleClasses, function(role, name) {
-                if(name != "role") {
-                    game.getPlayerByNickOrThrow(name).role = new roleClasses[name];
-                }
-            });
-				allPlayersPass(game);
+        var game;
+        beforeEach(function(done) {
+            initGameWithAllRoles(function(instance) {
+                game = instance;
+                done();
+            })
         });
         it("it should end in Cylon victory when humans are dead", function () {
-            while(game.getAlivePlayersFromFaction("Human").length > 0) {
-                // Day
-                game.isNight.should.be.false;
-                var n2 = game.getPlayerByNickOrThrow("number2");
-                n2.callAirlockVote("");
-                _.forEach(game.getAlivePlayers(), function (player, key) {
-                    if(game.isNight){
-                        return false;
-                    }
-                    (function () {
-                        player.vote("yes");
-                    }).should.not.throw();
-                });
-
+            while(true) {
                 // Night
                 game.isNight.should.be.true;
-                (function () {
-                    game.getPlayerByNickOrThrow("number2").onCommand("kill", game.getAlivePlayersFromFaction("Human")[0].nick)
-                }).should.not.throw();
-                _.forEach(game.getAlivePlayers(), function (player, key) {
-                    if (player.nick != "number2") {
+                (function() {game.onCommand("number2", {id: "kill", targets: [game.getAlivePlayersFromFaction("Human")[0].nick]});}).should.not.throw();
+                _.forEach(game.getAlivePlayers(), function(player, key) {
+                    if(player.nick != "number2") {
                         (function () {
-                            player.onCommand("pass", "");
+                            (function() {game.onCommand(player.nick, {id: "pass"});}).should.not.throw();
                         }).should.not.throw();
                     }
                 });
+
+                if(game.getAlivePlayersFromFaction("Human").length === 0) {
+                    break;
+                }
+
+                // Day
+                game.isNight.should.be.false;
+                passVoting(game);
             }
-            game.isStarted.should.be.false;
+            game.isFinished.should.be.true;
         });
     });
 });

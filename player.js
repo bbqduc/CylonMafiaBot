@@ -1,4 +1,6 @@
 var _ = require("lodash");
+var Persistence = require('./model');
+var Promise = require("bluebird");
 var Player = function(nick, game) {
     this.nick = nick;
     this.dead = false;
@@ -6,11 +8,34 @@ var Player = function(nick, game) {
     this.killedBy = null;
     this.killMessage = null;
 
+    this.votesCalled = 0;
+    this.passedVotesCalled = 0;
+    this.playersKilled = 0;
+    this.wonGame = false;
+    this.numVotedYes = 0;
+    this.numVotedNo = 0;
+
     this.commandHandlers = {
         "vote": {callBack: Player.prototype.vote.bind(this), description: "Take part in an ongoing vote. Usage: !vote yes|no|y|n"},
         "pass": {callBack: Player.prototype.passTurn.bind(this), description: "Skip using an ability during the night."},
         "airlock": {callBack: Player.prototype.callAirlockVote.bind(this), description: "Call a vote to throw someone out of the airlock. Usage: !airlock [targetNick]. Just !airlock will call a vote to skip airlocking for today."}
     };
+};
+
+Player.prototype.fetchDBInstance = function() {
+    var tmp = this;
+    return new Persistence.Player({name: tmp.nick})
+        .fetch()
+        .then(function(player){
+            if(player == null) {
+                return Persistence.Player.forge({name: tmp.nick}).save();
+            } else {
+                return new Promise(function(resolve, reject) { resolve(player); });
+            }
+        })
+        .then(function(player) {
+            tmp.persistPlayer = player;
+        })
 };
 
 Player.prototype.getCommandsString = function() {
@@ -24,27 +49,63 @@ Player.prototype.getCommandsString = function() {
 	return ret;
 };
 
+Player.prototype.getPersistObject = function() {
+    var self = this;
+    if(this.persistPlayer == null) {
+        return this.fetchDBInstance()
+            .then(function() {
+                return self.persistPlayer;
+            });
+    } else {
+        return new Promise(function(resolve, reject) {
+            resolve(self.persistPlayer);
+        });
+    }
+};
+
+Player.prototype.validateMessage = function(message) {
+    if(message.sender != null && message.sender != this.id) {
+        throw new Error("You can't send a message as someone else.");
+    }
+    if(message.to.faction != null && message.to.faction != p.role.FACTION) {
+        throw new Error("You can't send messages to that faction.");
+    }
+};
 Player.prototype.sendMessage = function(message) {
     this.game.communicationInterface.sendPrivateMessage(this.nick, message);
 };
 
-Player.prototype.onCommand = function(commandWord, restString) {
-    if(this.commandHandlers[commandWord] == null) {
-        if(this.role != null) {
-            this.role.parseCommand(commandWord, restString, this.game, this);
-        }
-    } else {
-        this.commandHandlers[commandWord].callBack(restString);
-    }
+Player.prototype.validateMessage = function(message) {
 };
 
-Player.prototype.callAirlockVote = function(restString) {
-    this.game.callAirlockVote(this, restString);
+Player.prototype.onMessage = function(message) {
+    if(message.to === "public") {
+        return; // handled by communicationinterface
+    }
+};
+Player.prototype.onCommand = function(command) {
+    if(this.dead) {
+        throw new Error("You are dead.");
+    }
+    var wasCommand = false;
+    if(this.commandHandlers[command.id] == null) {
+        if(this.role != null) {
+            wasCommand = this.role.registerCommand(command, this.game, this);
+        }
+    } else {
+        this.commandHandlers[command.id].callBack(command);
+        wasCommand = true;
+    }
+    return wasCommand;
+};
+
+Player.prototype.callAirlockVote = function(command) {
+    this.game.callAirlockVote(this, command.target);
 };
 
 Player.prototype.newDayCallback = function() {
     this.role.newDayCallback();
-}
+};
 
 Player.prototype.passTurn = function() {
     this.role.abilityUsed = true;
@@ -52,22 +113,12 @@ Player.prototype.passTurn = function() {
     this.game.nextDayIfAllPlayersDone();
 };
 
-Player.prototype.vote = function(restString) {
-    restString = restString.trim();
-    var cmpString = restString.toUpperCase();
-    var votedYes = null;
-    if(cmpString === "YES" || cmpString === "Y") {
-        votedYes = true;
+Player.prototype.vote = function(command) {
+    if(command.votedYes === null) {
+       throw new Error("Couldn't parse a yes/no vote from " + command.toString());
     }
-    else if(cmpString === "NO" || cmpString === "N") {
-        votedYes = false;
-    }
-
-    if(votedYes === null) {
-       throw new Error("Couldn't parse a yes/no vote from " + restString);
-    }
-    var votes = this.role.vote(votedYes);
-    this.game.registerVote(this, votedYes, votes.yesEffect, votes.noEffect);
+    var votes = this.role.vote(command.votedYes);
+    this.game.registerVote(this, command.votedYes, votes.yesEffect, votes.noEffect);
 };
 
 module.exports = Player;

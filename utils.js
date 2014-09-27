@@ -12,7 +12,7 @@ module.exports = {
     },
     addManyPlayers: function(game, numPlayers, namePrefix) {
         for (var i = 0; i < numPlayers; ++i) {
-            game.addPlayer(namePrefix + i, "");
+            game.addPlayer(namePrefix + i);
         }
     }
 };

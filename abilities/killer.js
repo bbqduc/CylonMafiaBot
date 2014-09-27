@@ -1,13 +1,15 @@
 var utils = require("../utils");
 var _ = require("lodash");
+var Ability = require("./ability");
 var Killer = function(params)
 {
+    Ability.call(this);
     this.maxKillTimes = params == null || params.maxKillsPerGame == null ? -1 : params.maxKillsPerGame; // infinite if not specified
     this.commandWord = "kill";
     this.message = '';
     this.abilityDescription = "Kill another player during the night. ";
     this.enabledNight = true;
-    this.enabledDay = false;
+    this.maxTargets = this.minTargets = 1;
     if(this.maxKillTimes != -1) {
        this.abilityDescription += "You can use this ability " + this.maxKillTimes + " times during the game.";
     }
@@ -23,21 +25,17 @@ var Killer = function(params)
 //                target.sendMessage("You were attacked during the night!");
                 --this.maxKillTimes;
             }
-        });
+        }, this);
     };
 
-    this.parseCommand = function(game, restString) { // this needs to be called when the user attempts to use it ... so needs to ENQUEUE the execution!
+    this._validateCommand = function(game, params) {
         if(this.maxKillTimes === 0) {
             throw new Error("Maximum amount of kills already performed!");
         }
-        restString = restString.trim();
-        var targets = [];
-        var splitPoint = restString.search(/\s/); // split on first whitespace, the rest becomes the kill message
-        var targetNick = splitPoint === -1 ? restString : restString.substr(0, splitPoint);
-        targets.push(game.getAlivePlayerByNickOrThrow(targetNick));
-        this.message = splitPoint === -1 ? "" : restString.substr(splitPoint).trim();
-        return targets;
+        this.message = params.message != null ? params.message : "";
     };
 };
+Killer.prototype = Object.create(Ability.prototype);
+Killer.prototype.constructor = Killer;
 
 module.exports = Killer;

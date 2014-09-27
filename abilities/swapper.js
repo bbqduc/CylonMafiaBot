@@ -4,15 +4,17 @@
 
 var utils = require("../utils");
 var _ = require("lodash");
+var Ability = require("./ability");
 var Swapper = function()
 {
+    Ability.call(this);
     this.commandWord = "swap";
     this.abilityDescription = "Swap any nightly action performed on one of your targets to be used on the other target instead. Usage : !" + this.commandWord + " targetNick1 targetNick2";
     this.target1 = null;
     this.target2 = null;
     this.swappedActors = [];
     this.enabledNight = true;
-    this.enabledDay = false;
+    this.maxTargets = this.minTargets = 2;
 
     this.swappingListener = function(game, abilityParameters) {
         if(_.contains(this.swappedActors, abilityParameters.actor)) { // to avoid endless swapping
@@ -29,7 +31,7 @@ var Swapper = function()
             }
             if(originalTarget != abilityParameters.targets[key]) {
                 this.swappedActors.push(abilityParameters.actor);
-                abilityParameters.actor.sendMessage("Somehow you got lost and ended up using " + abilityParameters.ability.commandWord + " on " + abilityParameters.targets[key].nick + " instead of " + originalTarget.nick); // TODO : more interesting messages! Like different stuff for bartender etc
+                //abilityParameters.actor.sendMessage("Somehow you got lost and ended up using " + abilityParameters.ability.commandWord + " on " + abilityParameters.targets[key].nick + " instead of " + originalTarget.nick); // TODO : more interesting messages! Like different stuff for bartender etc
             }
         }, this);
         return true;
@@ -42,13 +44,10 @@ var Swapper = function()
         game.addAbilityTargetListener(abilityParameters.targets[1], this.swappingListener.bind(this));
     }
 
-    this.parseCommand = function(game, restString) {
-        var split = utils.getWhiteSpaceSeparatedParameters(restString, 2);
-        var targets = [];
-        targets[0] = game.getPlayerByNickOrThrow(split[0]);
-        targets[1] = game.getPlayerByNickOrThrow(split[1]);
-        return targets;
+    this._validateCommand = function(game, params) {
     };
 };
 
+Swapper.prototype = Object.create(Ability.prototype);
+Swapper.prototype.constructor = Swapper;
 module.exports = Swapper;

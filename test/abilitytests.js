@@ -11,6 +11,7 @@ var abilities = require("../abilities");
 describe('Abilities', function() {
     var commandWords = [];
     _.forOwn(abilities, function (ability, name) {
+        if(ability == abilities.ability) return;
         var obj = new ability();
         describe(name, function () {
             describe('CommandWord', function () {

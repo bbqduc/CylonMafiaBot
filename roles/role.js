@@ -42,8 +42,8 @@ Role.prototype.winResolver = new FactionWinResolver(Role.prototype.FACTION);
 Role.prototype.resolveWin = function(game) {
     return this.winResolver.resolveWin(game, this);
 };
-Role.prototype.parseCommand = function(commandWord, restString, game, actor) {
-    var ability = _.find(this.abilities, {"commandWord" : commandWord});
+Role.prototype.registerCommand = function(command, game, actor) {
+    var ability = _.find(this.abilities, {"commandWord" : command.id});
     if(ability == null) {
         //throw new Error("No such command: " + commandWord); 
 		  return false;
@@ -51,16 +51,12 @@ Role.prototype.parseCommand = function(commandWord, restString, game, actor) {
     if(this.abilityUsed) {
         throw new Error("Already used an ability tonight.");
     }
-    if(game.isNight && !ability.enabledNight) {
-        throw new Error("Can't use that ability during the night.");
-    } else if(!game.isNight && !ability.enabledDay) {
-        throw new Error("Can't use that ability during the day.");
-    }
-    var targets = ability.parseCommand(game, restString, actor);
+    var targets = ability.validateCommand(game, command, actor);
     game.useAbility(ability, actor, targets);
     this.abilityUsed = true;
-    actor.sendMessage("Command " + commandWord + " registered.");
+    actor.sendMessage("Command " + command.id + " registered.");
     game.nextDayIfAllPlayersDone();
+    return true;
 };
 
 Role.prototype.newDayCallback = function() {
