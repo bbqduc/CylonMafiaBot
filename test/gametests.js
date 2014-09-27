@@ -62,28 +62,16 @@ describe("Game", function() {
         {
             game = new Game();
         });
-        it("should be possible to join a game", function(done) {
+        it("should be possible to join a game", function() {
             game.onCommand("TestUser1", {id: "join"});
             game.onCommand("TestUser1", {id: "join"});
-            game.startGame()
-                .then()
-                .catch()
-               .finally(function() {
-                    _.size(game.players).should.be.exactly(1);
-                    done();
-                });
+            _.size(game.players).should.be.exactly(1);
         });
-        it("should be possible to leave a game", function(done) {
+        it("should be possible to leave a game", function() {
             game.onCommand("TestUser1", {id: "join"});
             game.onCommand("TestUser1", {id: "leave"});
             game.onCommand("TestUser1", {id: "leave"});
-            game.startGame()
-                .then()
-                .catch()
-                .finally(function() {
-                    _.size(game.players).should.be.exactly(0);
-                    done();
-                });
+            _.size(game.players).should.be.exactly(0);
         });
         it("should not be possible to join an ongoing game", function(done) {
             game.onCommand("TestUser1", {id: "join"});

@@ -12,7 +12,7 @@ module.exports = {
   staging: {
     client: 'postgresql',
     connection: {
-      database: 'test',
+      database: 'cylon_staging',
       user:     'johannes',
       password: ''
     },
@@ -28,7 +28,7 @@ module.exports = {
   production: {
     client: 'postgresql',
     connection: {
-      database: 'test',
+      database: 'cylon',
       user:     'johannes',
       password: ''
     },

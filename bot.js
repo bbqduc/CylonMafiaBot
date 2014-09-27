@@ -96,7 +96,7 @@ var CylonBot = function(server, botnick, channel, maintainernick, callback) {
         var wasCommand = false;
         if (message.length > 1 && message[0] == '!') { // looks like a command
             try {
-                wasCommand = this.game.onCommand(sender, this.parseCommand(message.substr(1)));
+                wasCommand = this.game.onCommand(sender, this.parseCommand(message.substr(1)), true);
             }
             catch(e) {
                 console.log(e);
@@ -113,10 +113,11 @@ var CylonBot = function(server, botnick, channel, maintainernick, callback) {
         message = message.trim();
         if(message.length > 1 && message[0] == '!') {
             try {
-                this.game.onCommand(sender, this.parseCommand(message.substr(1)));
+                this.game.onCommand(sender, this.parseCommand(message.substr(1)), false);
             }
             catch(e) {
                 console.log(e);
+                this.sendPrivateMessage(sender, e.message);
             }
         }
     };

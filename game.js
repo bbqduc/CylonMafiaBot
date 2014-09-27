@@ -12,6 +12,7 @@ var Promise = require("bluebird");
 
 var Persistence = require('./model');
 
+"use strict";
 var DummyCommunicationInterface = function()
 {
     this.sentPublicMessages = [];
@@ -53,7 +54,6 @@ var Game = function(finishedCallback)
     this.yesVotes = 0;
     this.noVotes = 0;
     this.votedPlayers = [];
-    this.addPlayerPromises = [];
 
 
 
@@ -138,8 +138,8 @@ var Game = function(finishedCallback)
                     player.wonGame = false;
                 }
                 playedGamePromises.push(Persistence.DB("PlayedGames")
-                    .where({player_id: player.persistPlayer.id,
-                        game_id: self.persistGame.id})
+                    .where({player_id: player.persistPlayerId,
+                        game_id: self.persistGameId})
                     .update({
                         won_game: player.wonGame,
                         killed_players: player.playersKilled,
@@ -151,14 +151,17 @@ var Game = function(finishedCallback)
             }, this);
             this.communicationInterface.sendPublicMessage("Winners: " + winners.join(", "));
             this.communicationInterface.sendPublicMessage("Not-Winners: " + losers.join(", "));
-            this.persistGame.endTime = new Date();
-            this.persistGame.finished = true;
             Persistence.DB("Games")
-                    .where({id: this.persistGame.id})
+                    .where({id: this.persistGameId})
                     .update({
                         end_time: new Date(),
                         finished: true
-                    }).then();
+                    }).then(function() {
+                    self.communicationInterface.sendPublicMessage("Game #" + self.persistGameId + " concluded.");
+                    if(typeof(self.finishedCallback) === "function") {
+                        self.finishedCallback(self);
+                    }
+                });
             return true;
         }
         return false;
@@ -169,20 +172,19 @@ var Game = function(finishedCallback)
     };
 
     Game.prototype.addPlayer = function(sender) {
-        if(this.isStarted) {
+        if(this.isStarting) {
             this.communicationInterface.sendPublicMessage("Cannot join an ongoing game!");
             return false;
         }
         if(this.players[sender] == null) {
             this.players[sender] = new Player(sender, this);
             this.communicationInterface.sendPublicMessage(_.size(this.players) + " players.");
-            this.addPlayerPromises.push(this.players[sender].fetchDBInstance());
         }
         return true;
     };
     Game.prototype.removePlayer = function(nick)
     {
-        if(this.isStarted) {
+        if(this.isStarting) {
             this.communicationInterface.sendPublicMessage("Cannot leave an ongoing game!");
             return false;
         }
@@ -289,53 +291,53 @@ var Game = function(finishedCallback)
         var promises = [];
         var self = this;
         _.forOwn(this.players, function(p) {
-            promises.push(new Persistence.Role({name: p.role.NAME})
-                .fetch()
-                .then(function(roleInstance) {
-                    if(roleInstance == null) {
-                        return Persistence.Role.forge({name: p.role.NAME}).save();
-                    } else {
-                        return new Promise(function(resolve, reject) { resolve(roleInstance); });
-                    }
-                })
-                .then(function (roleInstance) {
-                    p.role.persistRole = roleInstance;
-                    return new Persistence.PlayedGame({
-                        game_id: self.persistGame.id,
-                        player_id: p.persistPlayer.id,
-                        role_id: p.role.persistRole.id
-                    }).save()
-                        .then(function(playedGameInstance) {
-                            p.persistPlayedGame = playedGameInstance;
-                        })
-                }));
+            promises.push(p.fetchDBInstance().then(function() {
+                return Persistence.DB("Roles")
+                    .where({name: p.role.NAME})
+                    .first("id")
+            }).then(function(roleInstanceId) {
+                if(!roleInstanceId) {
+                    return Persistence.DB("Roles")
+                        .insert({name: p.role.NAME}, "id");
+                } else {
+                    return new Promise(function(resolve) { resolve([roleInstanceId.id]);})
+                }
+            }).then(function(roleInstanceId){
+                p.role.persistRoleId = roleInstanceId[0];
+                return Persistence.DB("PlayedGames")
+                    .insert({game_id: self.persistGameId,
+                        player_id: p.persistPlayerId,
+                        role_id: p.role.persistRoleId
+                    })
+            }));
         });
         return Promise.all(promises);
     };
 
     Game.prototype.startGame = function()
     {
-        if(this.isStarted) {
+        if(this.isStarting) {
             throw new Error("Game already running.");
         }
         this.numMessages = 0;
         this.numCommands = 0;
         var self = this;
-        if(_.size(this.addPlayerPromises) < 4) {
+        if(_.size(this.players) < 4) {
             throw new Error("Not much point to play with under 4 people!");
         }
-        return Promise.all(this.addPlayerPromises).then(function() {
-            return new Persistence.Game({startTime: new Date(), endTime: null, finished: false}).save()
-        }).then(function (game) {
-            self.persistGame = game;
-        }).then(function() {
-            self.isStarting = true;
-            self.communicationInterface.sendPublicMessage("Game #" + self.persistGame.id + " starting!");
-            return self.determineRoles();
-        }).then(function(){
-            self.advanceToNight();
-            self.isStarted = true;
-        });
+        this.isStarting = true;
+        return Persistence.DB("Games")
+            .insert({start_time: new Date(), end_time: null, finished: false}, "id")
+            .then(function (gameId) {
+                self.persistGameId = gameId[0];
+            }).then(function() {
+                self.isStarting = true;
+                self.communicationInterface.sendPublicMessage("Game #" + self.persistGameId + " starting!");
+                return self.determineRoles();
+            }).then(function(){
+                self.advanceToNight();
+                self.isStarted = true;
+            });
     };
 
     Game.prototype.detectNewDeadPeople = function()
@@ -625,14 +627,14 @@ var Game = function(finishedCallback)
         }
     };
 
-    Game.prototype.onCommand = function(sender, command) {
+    Game.prototype.onCommand = function(sender, command, isPublic) {
         var wasCommand = false;
         if (this.commandHandlers[command.id] != null) {
             this.commandHandlers[command.id].callBack(sender, command);
             wasCommand = true;
         } else {
             if(this.players[sender] == null) return;
-            wasCommand = this.players[sender].onCommand(command);
+            wasCommand = this.players[sender].onCommand(command, isPublic);
         }
         if(wasCommand) {
             this.logCommand(sender, command, this.numCommands++);
@@ -644,8 +646,8 @@ var Game = function(finishedCallback)
         if(this.players[sender] == null || !this.isStarted) return;
         var self = this;
         Persistence.DB("Messages").insert({
-                game_id: self.persistGame.id,
-                player_id: self.players[sender].persistPlayer.id,
+                game_id: self.persistGameId,
+                player_id: self.players[sender].persistPlayerId,
                 time: new Date(),
                 text: message.text,
                 properties: _.omit(message, "text"),
@@ -658,8 +660,8 @@ var Game = function(finishedCallback)
         if(this.players[sender] == null || !this.isStarted) return;
         var self = this;
         Persistence.DB("Commands").insert({
-            game_id: self.persistGame.id,
-            player_id: self.players[sender].persistPlayer.id,
+            game_id: self.persistGameId,
+            player_id: self.players[sender].persistPlayerId,
             time: new Date(),
             properties: command,
             nth_in_game: ordinal

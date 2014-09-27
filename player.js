@@ -23,19 +23,27 @@ var Player = function(nick, game) {
 };
 
 Player.prototype.fetchDBInstance = function() {
-    var tmp = this;
-    return new Persistence.Player({name: tmp.nick})
-        .fetch()
-        .then(function(player){
-            if(player == null) {
-                return Persistence.Player.forge({name: tmp.nick}).save();
+    var self = this;
+    return Persistence.DB("Players")
+        .where({name: this.nick})
+        .first("id")
+        .then(function(playerInstanceId) {
+            if(playerInstanceId) {
+                return new Promise(function(resolve) {resolve([playerInstanceId.id])});
             } else {
-                return new Promise(function(resolve, reject) { resolve(player); });
+                return Persistence.DB("Players")
+                    .insert({name: self.nick}, "id");
             }
-        })
-        .then(function(player) {
-            tmp.persistPlayer = player;
-        })
+        }).catch(function(e) {
+            return Persistence.DB("Players")
+                .where({name: self.nick})
+                .first("id")
+                .then(function(playerInstanceId) {
+                    return new Promise(function(resolve) {resolve([playerInstanceId.id])});
+                });
+        }).then(function(playerInstanceId) {
+            self.persistPlayerId = playerInstanceId[0];
+        });
 };
 
 Player.prototype.getCommandsString = function() {
@@ -83,13 +91,13 @@ Player.prototype.onMessage = function(message) {
         return; // handled by communicationinterface
     }
 };
-Player.prototype.onCommand = function(command) {
+Player.prototype.onCommand = function(command, isPublic) {
     if(this.dead) {
         throw new Error("You are dead.");
     }
     var wasCommand = false;
     if(this.commandHandlers[command.id] == null) {
-        if(this.role != null) {
+        if(this.role != null && !isPublic) {
             wasCommand = this.role.registerCommand(command, this.game, this);
         }
     } else {
