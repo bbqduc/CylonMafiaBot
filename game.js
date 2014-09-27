@@ -599,7 +599,7 @@ var Game = function(finishedCallback)
         _.forOwn(this.players, function(player, nick) {
             player.onMessage(message); // if it concerns the player, the message will be sent to his client
         }, this);
-        this.logMessage(sender, message, this.numMessages++);
+        this.logMessage(sender, message, this.numMessages++, this.currentDay*2+(this.isNight ? 0 : 1));
     };
 
     Game.prototype.validateMessage = function(sender, message) {
@@ -637,12 +637,12 @@ var Game = function(finishedCallback)
             wasCommand = this.players[sender].onCommand(command, isPublic);
         }
         if(wasCommand) {
-            this.logCommand(sender, command, this.numCommands++);
+            this.logCommand(sender, command, this.numCommands++, this.currentDay*2+(this.isNight ? 0 : 1));
         }
         return wasCommand;
     };
 
-    Game.prototype.logMessage = function(sender, message, ordinal) {
+    Game.prototype.logMessage = function(sender, message, ordinal, turn) {
         if(this.players[sender] == null || !this.isStarted) return;
         var self = this;
         Persistence.DB("Messages").insert({
@@ -651,12 +651,13 @@ var Game = function(finishedCallback)
                 time: new Date(),
                 text: message.text,
                 properties: _.omit(message, "text"),
-                nth_in_game: ordinal
+                nth_in_game: ordinal,
+                turn: turn
             }
         ).then();
     };
 
-    Game.prototype.logCommand = function(sender, command, ordinal) {
+    Game.prototype.logCommand = function(sender, command, ordinal, turn) {
         if(this.players[sender] == null || !this.isStarted) return;
         var self = this;
         Persistence.DB("Commands").insert({
@@ -664,7 +665,8 @@ var Game = function(finishedCallback)
             player_id: self.players[sender].persistPlayerId,
             time: new Date(),
             properties: command,
-            nth_in_game: ordinal
+            nth_in_game: ordinal,
+            turn: turn
         }).then();
     };
 };
