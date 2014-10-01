@@ -88,7 +88,7 @@ var Game = function(finishedCallback)
     Game.prototype.abortGame = function(sender) {
         if(sender === "bduc") {
             this.communicationInterface.sendPublicMessage("Resetting.");
-            this.reset();
+            this.finishedCallback(this);
         }
     };
 

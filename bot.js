@@ -82,6 +82,8 @@ var CylonBot = function(server, botnick, channel, maintainernick, callback) {
                 obj = this.parseAirlock(restString);
                 break;
             case "pass":
+            case "endnight":
+            case "abort":
                 break;
             default:
                 obj = this.parseTargets(restString);
@@ -136,7 +138,11 @@ var CylonBot = function(server, botnick, channel, maintainernick, callback) {
     };
 
     this.parseAirlock = function(message) {
-        var targets = message.trim().split(/\s/);
+        var tmp = message.trim();
+        if(tmp.length == 0) {
+            return {};
+        }
+        var targets = tmp.split(/\s/);
 
         if(targets.length > 0)
             return {target: targets[0]};
